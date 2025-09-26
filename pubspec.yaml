@@ -11,7 +11,6 @@ dependencies:
   shelf: ^1.4.2
   shelf_router: ^1.1.4
   collection: ^1.19.1
-  # Database adapters
   sqlite3: ^2.9.0
   path: ^1.9.1
   postgres: ^3.5.6

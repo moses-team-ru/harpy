@@ -38,7 +38,20 @@ A modern, fast, and lightweight backend framework for Dart that makes building R
 - **Testing Ready** - Easy to test with built-in testing utilities
 - 🔧 **CLI Tools** - Project scaffolding and development tools
 
-## 🚀 Quick Start
+## � Documentation
+
+Complete documentation is available in the [`doc/`](doc/) folder:
+
+- **[📖 Documentation Index](doc/README.md)** - Complete guide and component overview
+- **[🚀 Framework Overview](doc/harpy_framework.md)** - Core concepts and getting started
+- **[⚙️ Configuration](doc/configuration.md)** - Environment and file-based configuration
+- **[🗄️ Database System](doc/database.md)** - ORM, adapters, and migrations
+- **[📡 HTTP Components](doc/http.md)** - Request/response handling
+- **[🔧 Middleware](doc/middleware.md)** - Authentication, CORS, logging, and custom middleware
+- **[🛣️ Routing](doc/routing.md)** - URL routing and parameter extraction
+- **[🖥️ Server](doc/server.md)** - Server implementation and deployment
+
+## �🚀 Quick Start
 
 ### Installation
 
