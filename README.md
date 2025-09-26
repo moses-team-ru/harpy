@@ -1,5 +1,9 @@
 # Harpy Backend Framework
 
+<p align="center">
+  <img src="assets/logotype.png" alt="Harpy Logo" width="200" height="200">
+</p>
+
 A modern, fast, and lightweight backend framework for Dart that makes building REST APIs easy and enjoyable. Built on top of Dart's powerful `shelf` package, Harpy provides an Express.js-like experience for Dart developers.
 
 [![Pub Version](https://img.shields.io/pub/v/harpy.svg)](https://pub.dev/packages/harpy)
@@ -16,7 +20,22 @@ A modern, fast, and lightweight backend framework for Dart that makes building R
 - 🔐 **Authentication** - JWT and Basic Auth middleware included
 - 🌐 **CORS Support** - Cross-origin resource sharing out of the box
 - 📊 **Request Logging** - Comprehensive request/response logging
-- 🧪 **Testing Ready** - Easy to test with built-in testing utilities
+
+### 🗄️ Database & ORM Features
+- **Production-Ready SQLite** - Full implementation with transactions, migrations, and connection pooling
+- **PostgreSQL Support** - Complete adapter with advanced features
+- **MySQL Connector** - Native MySQL database integration
+- **MongoDB Integration** - NoSQL document database support
+- **Redis Cache Layer** - Key-value store support (stub implementation)
+- **Active Record Pattern** - Easy model-based database operations
+- **Query Builder** - Type-safe, fluent query construction
+- **Database Migrations** - Version control for your database schema
+- **ACID Transactions** - Full transaction support with automatic rollback
+- **Connection Pooling** - Efficient database connection management
+- **Security First** - Built-in SQL injection prevention
+
+### 🧪 Development & Testing
+- **Testing Ready** - Easy to test with built-in testing utilities
 - 🔧 **CLI Tools** - Project scaffolding and development tools
 
 ## 🚀 Quick Start
@@ -239,6 +258,263 @@ shelf.Middleware customMiddleware() {
 app.use(customMiddleware());
 ```
 
+### Database & ORM
+
+Harpy includes a complete ORM system with support for multiple databases. The framework provides a unified interface across all database adapters, making it easy to switch between different database systems.
+
+#### Database Adapters Status
+
+| Database | Status | Features | Production Ready |
+|----------|--------|----------|------------------|
+| **SQLite** | ✅ Complete | Full SQL, Transactions, Migrations, Connection pooling | ✅ Yes |
+| **PostgreSQL** | ✅ Complete | Advanced SQL features, JSON support, Full-text search | ✅ Yes |
+| **MySQL** | ✅ Complete | Standard SQL, Stored procedures, Multi-database | ✅ Yes |
+| **MongoDB** | ✅ Complete | Document queries, Aggregation pipeline, GridFS | ✅ Yes |
+| **Redis** | ⚠️ Stub Implementation | Basic key-value operations, Transactions (MULTI/EXEC) | ❌ Development needed |
+
+> **Note:** The Redis adapter is currently implemented as a stub for demonstration purposes. A full Redis implementation is planned for future releases. See the [TODO](#-todo) section for more details.
+
+#### SQLite (Production Ready)
+
+The SQLite adapter provides the most mature and feature-complete implementation:
+
+```dart
+import 'package:harpy/harpy.dart';
+
+void main() async {
+  // Direct SQLite connection
+  final db = await SqliteAdapter.create({
+    'path': './database.db', // or ':memory:' for in-memory DB
+  });
+
+  // Create tables
+  await db.execute('''
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      email TEXT UNIQUE NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  ''');
+
+  // Insert with parameters (prevents SQL injection)
+  await db.execute(
+    'INSERT INTO users (name, email) VALUES (?, ?)',
+    ['John Doe', 'john@example.com']
+  );
+
+  // Query data
+  final result = await db.execute('SELECT * FROM users WHERE name LIKE ?', ['%John%']);
+  for (final user in result.rows) {
+    print('User: ${user['name']} (${user['email']})');
+  }
+
+  // Transactions
+  final transaction = await db.beginTransaction();
+  try {
+    await transaction.execute('INSERT INTO users (name, email) VALUES (?, ?)', 
+                             ['Alice', 'alice@example.com']);
+    await transaction.execute('INSERT INTO users (name, email) VALUES (?, ?)', 
+                             ['Bob', 'bob@example.com']);
+    await transaction.commit();
+  } on Exception catch (e) {
+    await transaction.rollback();
+    rethrow;
+  }
+
+  await db.disconnect();
+}
+```
+
+#### PostgreSQL
+
+Full-featured PostgreSQL support with advanced capabilities:
+
+```dart
+// PostgreSQL connection
+final db = await PostgresqlAdapter.create({
+  'host': 'localhost',
+  'port': 5432,
+  'database': 'myapp',
+  'username': 'user',
+  'password': 'password',
+});
+
+// Advanced PostgreSQL features
+await db.execute('''
+  CREATE TABLE IF NOT EXISTS products (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    metadata JSONB,
+    search_vector TSVECTOR,
+    created_at TIMESTAMP DEFAULT NOW()
+  )
+''');
+
+// JSON queries
+final result = await db.execute(
+  "SELECT * FROM products WHERE metadata->>'category' = ?",
+  ['electronics']
+);
+```
+
+#### MySQL
+
+Native MySQL support with connection pooling:
+
+```dart
+// MySQL connection
+final db = await MysqlAdapter.create({
+  'host': 'localhost',
+  'port': 3306,
+  'database': 'myapp',
+  'username': 'user',
+  'password': 'password',
+});
+
+// MySQL-specific features
+await db.execute('''
+  CREATE TABLE users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  ) ENGINE=InnoDB
+''');
+```
+
+#### MongoDB
+
+Document-oriented database support:
+
+```dart
+// MongoDB connection
+final db = await MongodbAdapter.create({
+  'host': 'localhost',
+  'port': 27017,
+  'database': 'myapp',
+  'username': 'user',
+  'password': 'password',
+});
+
+// Document operations
+await db.execute('INSERT', ['users'], {
+  'name': 'John Doe',
+  'email': 'john@example.com',
+  'profile': {
+    'age': 30,
+    'interests': ['coding', 'music']
+  }
+});
+
+// Query documents
+final result = await db.execute('FIND', ['users'], {
+  'filter': {'profile.age': {'\$gte': 25}},
+  'sort': {'name': 1}
+});
+```
+
+#### Redis (Stub Implementation)
+
+⚠️ **Current Status:** The Redis adapter is implemented as a stub for demonstration and testing purposes.
+
+```dart
+// Redis connection (stub implementation)
+final db = await RedisAdapter.create({
+  'host': 'localhost',
+  'port': 6379,
+  'database': 0,
+});
+
+// Basic operations (simulated)
+await db.execute('SET key value');
+final result = await db.execute('GET key');
+
+// Note: This is a stub implementation
+// Full Redis features are planned for future releases
+```
+
+#### Using Database Manager
+
+```dart
+// Connect through Database manager (supports multiple DB types)
+final database = await Database.connect({
+  'type': 'sqlite',           // sqlite, postgresql, mysql, mongodb, redis
+  'path': './app_database.db',
+});
+
+// Use with automatic transaction handling
+await database.transaction((tx) async {
+  await tx.execute('INSERT INTO orders (user_id, total) VALUES (?, ?)', [1, 99.99]);
+  await tx.execute('UPDATE inventory SET stock = stock - 1 WHERE id = ?', [1]);
+  // Automatically commits on success, rolls back on error
+});
+
+// Get database info
+final info = await database.getInfo();
+print('Database: ${info['type']} v${info['version']}');
+```
+
+#### Models & Migrations
+
+```dart
+// Define models
+class User extends Model with ActiveRecord {
+  @override
+  String get tableName => 'users';
+
+  String? get name => get<String>('name');
+  set name(String? value) => setAttribute('name', value);
+
+  String? get email => get<String>('email');
+  set email(String? value) => setAttribute('email', value);
+
+  @override
+  List<String> validate() {
+    final errors = <String>[];
+    if (name == null || name!.trim().isEmpty) {
+      errors.add('Name is required');
+    }
+    if (email == null || !email!.contains('@')) {
+      errors.add('Valid email is required');
+    }
+    return errors;
+  }
+}
+
+// Database migrations
+class CreateUsersTable extends Migration {
+  @override
+  Future<void> up() async {
+    await createTable('users', (table) {
+      table.id();
+      table.string('name', nullable: false);
+      table.string('email', nullable: false);
+      table.timestamps();
+      table.unique(['email']);
+      table.index(['name']);
+    });
+  }
+
+  @override
+  Future<void> down() async {
+    await dropTable('users');
+  }
+}
+```
+
+#### Database Features
+
+- ✅ **Multiple Database Support**: SQLite (production-ready), PostgreSQL, MySQL, MongoDB
+- ⚠️ **Redis Support**: Basic key-value operations (stub implementation - full version planned)
+- ✅ **ACID Transactions**: Full transaction support with automatic rollback
+- ✅ **Query Builder**: Type-safe, fluent query construction
+- ✅ **Active Record Pattern**: Easy model-based database operations  
+- ✅ **Repository Pattern**: Clean separation of data access logic
+- ✅ **Database Migrations**: Version control for your database schema
+- ✅ **Connection Pooling**: Efficient database connection management
+- ✅ **Security**: Built-in SQL injection prevention
+
 ### Configuration
 
 Harpy supports flexible configuration management:
@@ -429,6 +705,39 @@ export PORT=8080
 export DATABASE_HOST=prod-db.example.com
 export JWT_SECRET=super-secret-key
 ```
+
+## 📋 TODO
+
+### High Priority
+- [ ] **Complete Redis Adapter Implementation**
+  - Replace stub implementation with full Redis client integration
+  - Add support for all Redis data types (Strings, Lists, Sets, Sorted Sets, Hashes)
+  - Implement Redis-specific features (Pub/Sub, Lua scripts, Streams)
+  - Add connection pooling and cluster support
+  - Comprehensive testing suite
+
+### Medium Priority
+- [ ] **Enhanced Query Builder**
+  - Add support for complex JOIN operations across all adapters
+  - Implement subquery support
+  - Add query optimization hints
+
+- [ ] **Advanced ORM Features**
+  - Model relationships (One-to-Many, Many-to-Many)
+  - Lazy loading and eager loading
+  - Model validation and serialization
+  - Schema synchronization
+
+### Low Priority
+- [ ] **Additional Database Adapters**
+  - CouchDB support
+  - InfluxDB for time-series data
+  - Neo4j for graph databases
+
+- [ ] **Performance Optimizations**
+  - Query result caching
+  - Connection pool optimization
+  - Benchmark suite and performance monitoring
 
 ## 🤝 Contributing
 

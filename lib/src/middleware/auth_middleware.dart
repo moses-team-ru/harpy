@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:collection/collection.dart';
 import 'package:harpy/src/middleware/middleware.dart';
 import 'package:shelf/shelf.dart' as shelf;
 
@@ -108,29 +109,75 @@ class AuthMiddleware implements Middleware {
   bool _validateJWT(String token) {
     try {
       final parts = token.split('.');
-      if (parts.length != 3) return false;
+      if (parts.length != 3) {
+        throw ArgumentError('Invalid JWT format: expected 3 parts');
+      }
 
-      final String? fp = parts.elementAtOrNull(1);
-      if (fp == null) return false;
-      // Decode payload (this is a simplified example)
-      final payload = _base64UrlDecode(fp);
-      final payloadJson = jsonDecode(payload) as Map<String, dynamic>;
+      final header = parts.elementAtOrNull(0);
+      final payload = parts.elementAtOrNull(1);
+      final signature = parts.elementAtOrNull(2);
+
+      if (header == null || payload == null || signature == null) {
+        throw ArgumentError('Invalid JWT format: missing parts');
+      }
+
+      // Decode and validate header
+      final headerJson =
+          jsonDecode(_base64UrlDecode(header)) as Map<String, dynamic>;
+      final alg = headerJson['alg'] as String?;
+      if (alg == null || alg != 'HS256') {
+        throw ArgumentError('Unsupported algorithm: ${alg ?? 'null'}');
+      }
+
+      // Decode payload
+      final payloadJson =
+          jsonDecode(_base64UrlDecode(payload)) as Map<String, dynamic>;
+
+      // Check required fields
+      if (!payloadJson.containsKey('iss') || !payloadJson.containsKey('sub')) {
+        throw ArgumentError('Missing required JWT claims (iss, sub)');
+      }
 
       // Check expiration
       final exp = payloadJson['exp'] as int?;
       if (exp != null) {
         final expiration = DateTime.fromMillisecondsSinceEpoch(exp * 1000);
         if (DateTime.now().isAfter(expiration)) {
-          return false;
+          throw ArgumentError('Token expired');
         }
       }
 
-      // In a real implementation, you would verify the signature here
+      // Check not before time
+      final nbf = payloadJson['nbf'] as int?;
+      if (nbf != null) {
+        final notBefore = DateTime.fromMillisecondsSinceEpoch(nbf * 1000);
+        if (DateTime.now().isBefore(notBefore)) {
+          throw ArgumentError('Token not yet valid');
+        }
+      }
+
+      // Verify signature if secret is provided
+      if (jwtSecret != null) {
+        final expectedSignature =
+            _generateSignature('$header.$payload', jwtSecret!);
+        if (signature != expectedSignature) {
+          throw ArgumentError('Invalid token signature');
+        }
+      }
+
       return true;
     } on Exception catch (e) {
       print('JWT validation failed: $e');
       return false;
     }
+  }
+
+  String _generateSignature(String data, String secret) {
+    // В production следует использовать криптографическую библиотеку
+    // Здесь упрощенная реализация для демонстрации
+    final bytes = utf8.encode(data + secret);
+    final hash = bytes.fold<int>(0, (prev, byte) => prev ^ byte);
+    return base64UrlEncode(utf8.encode(hash.toString()));
   }
 
   Future<shelf.Response> _handleBasicAuth(

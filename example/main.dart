@@ -1,124 +1,254 @@
+// ignore_for_file: avoid_print
+
 import 'package:harpy/harpy.dart';
 
+// Example User model
+class User extends Model with ActiveRecord {
+  @override
+  String get tableName => 'users';
+
+  String? get name => get<String>('name');
+  set name(String? value) => setAttribute('name', value);
+
+  String? get email => get<String>('email');
+  set email(String? value) => setAttribute('email', value);
+
+  int? get age => get<int>('age');
+  set age(int? value) => setAttribute('age', value);
+
+  @override
+  List<String> validate() {
+    final errors = <String>[];
+
+    if (name == null || name!.isEmpty) {
+      errors.add('Name is required');
+    }
+
+    if (email == null || !email!.contains('@')) {
+      errors.add('Valid email is required');
+    }
+
+    if (age != null && age! < 0) {
+      errors.add('Age must be positive');
+    }
+
+    return errors;
+  }
+}
+
 void main() async {
-  // Create the Harpy application
-  final app = Harpy()
+  // Create Harpy application
+  final app = Harpy();
 
-    // Enable CORS for all origins (good for development)
+  // Connect to database (SQLite for example)
+  await app.connectToDatabase({'type': 'sqlite', 'path': 'example.db'});
+
+  // Register models
+  app.database?.registerModel<User>('users', User.new);
+
+  // Run migrations
+  final migrationManager = MigrationManager(app.database!.connection)
+
+    // Add user table migration
+    ..addMigration(Migration(
+      version: '001',
+      description: 'Create users table',
+      up: (schema) async {
+        await schema.createTable('users', (table) {
+          table
+            ..id()
+            ..string('name', nullable: false)
+            ..string('email', nullable: false)
+            ..integer('age')
+            ..timestamps()
+            ..unique(['email']);
+        });
+      },
+      down: (schema) async {
+        await schema.dropTable('users');
+      },
+    ));
+
+  await migrationManager.migrate();
+
+  // Add middleware
+  app
     ..enableCors()
-
-    // Enable request logging
     ..enableLogging(logBody: true)
 
-    // Basic routes
+    // API Routes
     ..get(
       '/',
-      (req, res) => res.json({
-        'message': 'Welcome to Harpy Framework!',
+      (Request req, Response res) => res.json({
+        'message': 'Welcome to Harpy Framework with ORM!',
         'version': '0.1.0',
+        'features': [
+          'RESTful routing',
+          'Type-safe ORM',
+          'Database migrations',
+          'Middleware support',
+          'CORS handling',
+          'Request logging',
+        ],
         'timestamp': DateTime.now().toIso8601String(),
       }),
     )
-    ..get(
-      '/health',
-      (req, res) => res.json({
-        'status': 'healthy',
-        'uptime': DateTime.now().difference(DateTime.now()).inSeconds,
-      }),
-    )
-
-    // Route with parameters
-    ..get('/users/:id', (req, res) {
-      final userId = req.params['id'] ?? 'unknown';
-      return res.json({
-        'userId': userId,
-        'message': 'User profile for ID: $userId',
-      });
+    ..get('/health', (Request req, Response res) async {
+      final dbInfo = await app.database?.getInfo();
+      return res.json({'status': 'healthy', 'database': dbInfo});
     })
 
-    // POST route with JSON body
-    ..post('/users', (req, res) async {
+    // User CRUD endpoints
+    ..get('/users', (Request req, Response res) async {
       try {
-        final body = await req.json();
-        final user = {
-          'id': DateTime.now().millisecondsSinceEpoch,
-          'name': body['name'] ?? 'Unknown',
-          'email': body['email'] ?? 'unknown@example.com',
-          'created': DateTime.now().toIso8601String(),
-        };
+        final userRegistry = app.database!.getModelRegistry<User>();
+        final users = await userRegistry.all();
 
-        return res.status(201).json({
-          'message': 'User created successfully',
-          'user': user,
+        return res.json({
+          'users': users.map((user) => user.toJson()).toList(),
+          'count': users.length,
         });
-      } catch (e) {
-        return res.badRequest({
-          'error': 'Invalid JSON body',
-          'message': e.toString(),
-        });
+      } on Exception catch (e) {
+        return res.internalServerError({'error': e.toString()});
+      }
+    })
+    ..get('/users/:id', (Request req, Response res) async {
+      try {
+        final id = req.params['id'];
+        if (id == null) {
+          return res.badRequest({'error': 'User ID is required'});
+        }
+
+        final userRegistry = app.database!.getModelRegistry<User>();
+        final user = await userRegistry.find(int.parse(id));
+
+        if (user == null) {
+          return res.notFound({'error': 'User not found'});
+        }
+
+        return res.json({'user': user.toJson()});
+      } on Exception catch (e) {
+        return res.internalServerError({'error': e.toString()});
+      }
+    })
+    ..post('/users', (Request req, Response res) async {
+      try {
+        final data = await req.json();
+
+        final user = User()
+          ..name = data['name'] as String?
+          ..email = data['email'] as String?
+          ..age = data['age'] as int?
+
+          // Set database connection for Active Record
+          ..connection = app.database!.connection;
+
+        await user.save();
+
+        return res.created({'user': user.toJson()});
+      } on Exception catch (e) {
+        if (e is ValidationException) {
+          return res.badRequest({'error': e.message});
+        }
+        return res.internalServerError({'error': e.toString()});
+      }
+    })
+    ..put('/users/:id', (Request req, Response res) async {
+      try {
+        final id = req.params['id'];
+        if (id == null) {
+          return res.badRequest({'error': 'User ID is required'});
+        }
+
+        final userRegistry = app.database!.getModelRegistry<User>();
+        final user = await userRegistry.find(int.parse(id));
+
+        if (user == null) {
+          return res.notFound({'error': 'User not found'});
+        }
+
+        final data = await req.json();
+
+        if (data['name'] != null) user.name = data['name'] as String;
+        if (data['email'] != null) user.email = data['email'] as String;
+        if (data['age'] != null) user.age = data['age'] as int;
+
+        user.connection = app.database!.connection;
+        await user.save();
+
+        return res.json({'user': user.toJson()});
+      } on Exception catch (e) {
+        if (e is ValidationException) {
+          return res.badRequest({'error': e.message});
+        }
+        return res.internalServerError({'error': e.toString()});
+      }
+    })
+    ..delete('/users/:id', (Request req, Response res) async {
+      try {
+        final id = req.params['id'];
+        if (id == null) {
+          return res.badRequest({'error': 'User ID is required'});
+        }
+
+        final userRegistry = app.database!.getModelRegistry<User>();
+        final user = await userRegistry.find(int.parse(id));
+
+        if (user == null) {
+          return res.notFound({'error': 'User not found'});
+        }
+
+        user.connection = app.database!.connection;
+        await user.delete();
+
+        return res.json({'message': 'User deleted successfully'});
+      } on Exception catch (e) {
+        return res.internalServerError({'error': e.toString()});
       }
     })
 
-    // Error handling example
-    ..get('/error', (req, res) {
-      throw Exception('This is a test error');
-    })
+    // Query examples
+    ..get('/users/search', (Request req, Response res) async {
+      try {
+        final name = req.query['name'];
+        final minAge = req.query['min_age'];
 
-    // Route with query parameters
-    ..get('/search', (req, res) {
-      final query = req.query['q'] ?? '';
-      final limit = int.tryParse(req.query['limit'] ?? '10') ?? 10;
+        final queryBuilder = app.database!.table<User>();
 
-      return res.json({
-        'query': query,
-        'limit': limit,
-        'results': [
-          {'id': 1, 'title': 'Result 1 for "$query"'},
-          {'id': 2, 'title': 'Result 2 for "$query"'},
-        ],
-      });
-    })
+        if (name != null) {
+          queryBuilder.whereLike('name', '%$name%');
+        }
 
-    // Different HTTP methods for REST API
-    ..put('/users/:id', (req, res) async {
-      final userId = req.params['id'];
-      final body = await req.json();
+        if (minAge != null) {
+          queryBuilder.where('age', int.parse(minAge), '>=');
+        }
 
-      return res.json({
-        'message': 'User updated',
-        'userId': userId,
-        'updates': body,
-      });
-    })
-    ..delete('/users/:id', (req, res) {
-      final userId = req.params['id'];
-      return res.json({
-        'message': 'User deleted',
-        'userId': userId,
-      });
+        final users = await queryBuilder.orderBy('name').limit(10).get();
+
+        return res.json({
+          'users': users.map((user) => user.toJson()).toList(),
+          'filters': {'name': name, 'min_age': minAge},
+        });
+      } on Exception catch (e) {
+        return res.internalServerError({'error': e.toString()});
+      }
     });
 
-  // Sub-router example
-  final apiRouter = Router()
-    ..get(
-      '/status',
-      (req, res) => res.json({'api': 'v1', 'status': 'active'}),
-    )
-    ..get(
-      '/info',
-      (req, res) => res.json({
-        'version': '1.0.0',
-        'endpoints': ['/api/v1/status', '/api/v1/info'],
-      }),
-    );
-
-  // Mount the sub-router
-  app.mount('/api/v1', apiRouter);
-
-  // Print registered routes
-  print(r'\n📋 Registered routes:');
-  app.printRoutes();
-
-  // Start the server
-  await app.listen(port: 3000);
+  // Start server
+  try {
+    await app.serve(port: 3000);
+    print('🚀 Harpy server with ORM running on http://localhost:3000');
+    print('📖 Available endpoints:');
+    print('  GET    / - Welcome message');
+    print('  GET    /health - Health check');
+    print('  GET    /users - List all users');
+    print('  GET    /users/:id - Get user by ID');
+    print('  POST   /users - Create new user');
+    print('  PUT    /users/:id - Update user');
+    print('  DELETE /users/:id - Delete user');
+    print('  GET    /users/search?name=...&min_age=... - Search users');
+  } on Exception catch (e) {
+    print('❌ Failed to start server: $e');
+    await app.close();
+  }
 }

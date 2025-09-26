@@ -48,7 +48,13 @@ class Request {
       _body = <String, dynamic>{};
     } else {
       try {
-        _body = jsonDecode(bodyString) as Map<String, dynamic>;
+        final decoded = jsonDecode(bodyString);
+        if (decoded is! Map<String, dynamic>) {
+          throw FormatException(
+            'Request body is not a JSON object, got: ${decoded.runtimeType}',
+          );
+        }
+        _body = decoded;
       } catch (e, st) {
         Error.throwWithStackTrace(
           FormatException('Invalid JSON in request body: $e'),

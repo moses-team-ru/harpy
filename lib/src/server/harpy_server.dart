@@ -43,12 +43,7 @@ class HarpyServer {
         shared: shared,
       );
     } else {
-      _server = await shelf_io.serve(
-        handler,
-        host,
-        port,
-        shared: shared,
-      );
+      _server = await shelf_io.serve(handler, host, port, shared: shared);
     }
 
     final protocol = securityContext != null ? 'https' : 'http';
@@ -65,15 +60,13 @@ class HarpyServer {
   }
 
   /// Get server information
-  Map<String, dynamic> get info {
-    return {
-      'host': host,
-      'port': port,
-      'secure': securityContext != null,
-      'running': _server != null,
-      'shared': shared,
-    };
-  }
+  Map<String, dynamic> get info => {
+        'host': host,
+        'port': port,
+        'secure': securityContext != null,
+        'running': _server != null,
+        'shared': shared,
+      };
 
   /// Check if server is running
   bool get isRunning => _server != null;

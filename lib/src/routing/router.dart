@@ -1,4 +1,4 @@
-// ignore_for_file: parameter_assignments
+// ignore_for_file: parameter_assignments, avoid_catching_errors
 
 import 'package:harpy/harpy.dart';
 import 'package:shelf/shelf.dart' as shelf;
@@ -7,8 +7,8 @@ import 'package:shelf/shelf.dart' as shelf;
 ///
 /// Provides RESTful routing with parameter support and middleware integration.
 class Router {
-  final List<Route> _routes = [];
-  final List<shelf.Middleware> _middlewares = [];
+  final List<Route> _routes = <Route>[];
+  final List<shelf.Middleware> _middlewares = <shelf.Middleware>[];
 
   /// Add middleware to the router
   void use(shelf.Middleware middleware) {
@@ -52,7 +52,7 @@ class Router {
 
   /// Add a route for any HTTP method
   void any(String pattern, Handler handler) {
-    const methods = [
+    const List<String> methods = <String>[
       'GET',
       'POST',
       'PUT',
@@ -61,46 +61,46 @@ class Router {
       'HEAD',
       'OPTIONS',
     ];
-    for (final method in methods) {
+    for (final String method in methods) {
       _addRoute(method, pattern, handler);
     }
   }
 
   /// Add a route for multiple HTTP methods
   void match(List<String> methods, String pattern, Handler handler) {
-    for (final method in methods) {
+    for (final String method in methods) {
       _addRoute(method, pattern, handler);
     }
   }
 
   /// Add a sub-router with a prefix
   void mount(String prefix, Router subrouter) {
-    for (final route in subrouter._routes) {
-      final newPattern = _combinePaths(prefix, route.pattern);
+    for (final Route route in subrouter._routes) {
+      final String newPattern = _combinePaths(prefix, route.pattern);
       _routes.add(Route.fromPattern(route.method, newPattern, route.handler));
     }
   }
 
   /// Add a route with custom method
   void _addRoute(String method, String pattern, Handler handler) {
-    final route = Route.fromPattern(method, pattern, handler);
+    final Route route = Route.fromPattern(method, pattern, handler);
     _routes.add(route);
   }
 
   /// Convert router to Shelf handler
   shelf.Handler toHandler() => (shelf.Request request) async {
-        final method = request.method;
-        final path = request.url.path;
+        final String method = request.method;
+        final String path = request.url.path;
 
         // Find matching route
-        for (final route in _routes) {
+        for (final Route route in _routes) {
           if (route.matches(method, path)) {
             // Extract route parameters
-            final params = route.extractParams(path);
+            final Map<String, String> params = route.extractParams(path);
 
             // Create Harpy request and add parameters
             final Request req = Request(request);
-            for (final entry in params.entries) {
+            for (final MapEntry<String, String> entry in params.entries) {
               req.addParam(entry.key, entry.value);
             }
 
@@ -117,13 +117,26 @@ class Router {
                 return res.json(result);
               }
               return res.empty();
+            } on FormatException catch (error) {
+              print('Format error in route handler: $error');
+              return res.badRequest(<String, String>{
+                'error': 'Bad Request',
+                'message': error.message,
+              });
+            } on ArgumentError catch (error) {
+              print('Argument error in route handler: $error');
+              return res.badRequest(<String, dynamic>{
+                'error': 'Bad Request',
+                'message': error.message,
+              });
             } on Exception catch (error, stackTrace) {
               print('Error in route handler: $error');
               print('Stack trace: $stackTrace');
 
-              return res.internalServerError({
+              return res.internalServerError(<String, String>{
                 'error': 'Internal server error',
-                'message': error.toString(),
+                'message': 'An unexpected error occurred',
+                'type': error.runtimeType.toString(),
               });
             }
           }
@@ -166,7 +179,7 @@ class Router {
   /// Print all registered routes (for debugging)
   void printRoutes() {
     print('Registered routes:');
-    for (final route in _routes) {
+    for (final Route route in _routes) {
       print('  ${route.method.padRight(7)} ${route.pattern}');
     }
   }

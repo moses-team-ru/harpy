@@ -8,7 +8,7 @@ import 'dart:io';
 class Configuration {
   /// Create configuration from a JSON file
   factory Configuration.fromJsonFile(String filePath) {
-    final config = Configuration._()
+    final Configuration config = Configuration._()
       .._loadFromJsonFile(filePath)
       .._loadFromEnvironment(); // Environment variables override file values
     return config;
@@ -16,13 +16,13 @@ class Configuration {
 
   /// Create configuration from environment variables only
   factory Configuration.fromEnvironment() {
-    final config = Configuration._().._loadFromEnvironment();
+    final Configuration config = Configuration._().._loadFromEnvironment();
     return config;
   }
 
   /// Create configuration from a map
   factory Configuration.fromMap(Map<String, Object?> data) {
-    final config = Configuration._();
+    final Configuration config = Configuration._();
     config._config.addAll(data);
     config
         ._loadFromEnvironment(); // Environment variables override provided values
@@ -30,11 +30,11 @@ class Configuration {
   }
 
   Configuration._();
-  final Map<String, Object?> _config = {};
+  final Map<String, Object?> _config = <String, Object?>{};
 
   /// Get a configuration value by key
   Object? get<T>(String key, [T? defaultValue]) {
-    final value = _getValue(key);
+    final Object? value = _getValue(key);
 
     if (value == null) {
       return defaultValue;
@@ -46,20 +46,20 @@ class Configuration {
     } else if (T == int) {
       if (value is int) return value as T;
       if (value is String) {
-        final parsed = int.tryParse(value);
+        final int? parsed = int.tryParse(value);
         return parsed as T?;
       }
     } else if (T == double) {
       if (value is double) return value as T;
       if (value is num) return value.toDouble() as T;
       if (value is String) {
-        final parsed = double.tryParse(value);
+        final double? parsed = double.tryParse(value);
         return parsed as T?;
       }
     } else if (T == bool) {
       if (value is bool) return value as T;
       if (value is String) {
-        final lower = value.toLowerCase();
+        final String lower = value.toLowerCase();
         if (lower == 'true' || lower == '1' || lower == 'yes') {
           return true as T;
         }
@@ -77,7 +77,7 @@ class Configuration {
 
   /// Get a required configuration value (throws if not found)
   Object getRequired<T>(String key) {
-    final value = get<T>(key);
+    final Object? value = get<T>(key);
     if (value == null) {
       throw ConfigurationException(
         'Required configuration key "$key" not found',
@@ -91,6 +91,14 @@ class Configuration {
 
   /// Set a configuration value
   void set(String key, Object? value) {
+    if (key.isEmpty) {
+      throw ArgumentError('Configuration key cannot be empty');
+    }
+    if (key.contains('..')) {
+      throw ArgumentError(
+        'Configuration key cannot contain consecutive dots: $key',
+      );
+    }
     _setNestedValue(_config, key, value);
   }
 
@@ -99,41 +107,50 @@ class Configuration {
 
   /// Load configuration from environment variables
   void _loadFromEnvironment() {
-    final env = Platform.environment;
+    final Map<String, String> env = Platform.environment;
 
-    for (final entry in env.entries) {
-      final key = entry.key.toLowerCase();
-      final value = entry.value;
+    for (final MapEntry<String, String> entry in env.entries) {
+      final String key = entry.key.toLowerCase();
+      final String value = entry.value;
 
       // Convert common naming conventions
-      final normalizedKey = key.replaceAll('_', '.');
+      // Replace underscores with dots but avoid consecutive dots
+      final String normalizedKey = key.replaceAll(RegExp('_+'), '.');
 
       // Try to parse as JSON if it looks like structured data
       if (value.startsWith('{') || value.startsWith('[')) {
         try {
-          final parsed = jsonDecode(value);
-          set(normalizedKey, parsed);
+          final String cleanKey = normalizedKey.replaceAll(RegExp(r'\.+'), '.');
+          if (!cleanKey.contains('..')) {
+            final parsed = jsonDecode(value);
+            set(cleanKey, parsed);
+          }
           continue;
-        } catch (e) {
-          // If JSON parsing fails, store as string
+        } on Exception catch (e) {
+          print(
+            'Warning: Failed to parse environment variable "$key" as JSON: $e',
+          );
         }
       }
 
-      // Store as string
-      set(normalizedKey, value);
+      // Clean up key to avoid consecutive dots and store as string
+      final String cleanKey = normalizedKey.replaceAll(RegExp(r'\.+'), '.');
+      if (!cleanKey.contains('..')) {
+        set(cleanKey, value);
+      }
     }
   }
 
   /// Load configuration from JSON file
   void _loadFromJsonFile(String filePath) {
     try {
-      final file = File(filePath);
+      final File file = File(filePath);
       if (!file.existsSync()) {
         throw ConfigurationException('Configuration file not found: $filePath');
       }
 
-      final content = file.readAsStringSync();
-      final data =
+      final String content = file.readAsStringSync();
+      final Map<String, Object?> data =
           (jsonDecode(content) as Map<String, dynamic>).cast<String, Object?>();
       _config.addAll(data);
     } catch (e, st) {
@@ -149,10 +166,10 @@ class Configuration {
   /// Get a value by key, supporting nested keys with dot notation
   Object? _getValue(String key) {
     if (key.contains('.')) {
-      final parts = key.split('.');
+      final List<String> parts = key.split('.');
       Object? current = _config;
 
-      for (final part in parts) {
+      for (final String part in parts) {
         if (current is Map<String, Object?> && current.containsKey(part)) {
           current = current[part];
         } else {
@@ -169,11 +186,11 @@ class Configuration {
   /// Set a nested value using dot notation
   void _setNestedValue(Map<String, Object?> map, String key, Object? value) {
     if (key.contains('.')) {
-      final parts = key.split('.');
-      final lastKey = parts.removeLast();
+      final List<String> parts = key.split('.');
+      final String lastKey = parts.removeLast();
 
       Map<String, Object?> current = map;
-      for (final part in parts) {
+      for (final String part in parts) {
         if (!current.containsKey(part) ||
             current[part] is! Map<String, Object?>) {
           current[part] = <String, Object?>{};
@@ -195,16 +212,16 @@ class Configuration {
   }
 
   void _printMap(Map<String, Object?> map, String indent) {
-    for (final entry in map.entries) {
-      final key = entry.key;
-      final value = entry.value;
+    for (final MapEntry<String, Object?> entry in map.entries) {
+      final String key = entry.key;
+      final Object? value = entry.value;
 
       if (value is Map<String, Object?>) {
         print('$indent$key:');
         _printMap(value, '$indent  ');
       } else {
         // Hide sensitive values
-        final displayValue =
+        final String displayValue =
             _isSensitiveKey(key) ? '[HIDDEN]' : value.toString();
         print('$indent$key: $displayValue');
       }
@@ -212,7 +229,7 @@ class Configuration {
   }
 
   bool _isSensitiveKey(String key) {
-    final lower = key.toLowerCase();
+    final String lower = key.toLowerCase();
     return lower.contains('password') ||
         lower.contains('secret') ||
         lower.contains('key') ||

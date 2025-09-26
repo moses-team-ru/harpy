@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:harpy/src/config/configuration.dart';
+import 'package:harpy/src/database/database.dart';
 import 'package:harpy/src/middleware/auth_middleware.dart';
 import 'package:harpy/src/middleware/cors_middleware.dart';
 import 'package:harpy/src/middleware/logging_middleware.dart';
@@ -15,15 +16,16 @@ import 'package:shelf/shelf_io.dart' as shelf_io;
 /// This is the primary entry point for creating Harpy web applications.
 /// It provides a fluent API for routing, middleware, and server configuration.
 class Harpy {
+  /// Create a new Harpy application
+  /// [config] Optional configuration object, defaults to environment variables
+  Harpy({Configuration? config})
+      : _config = config ?? Configuration.fromEnvironment();
   final Router _router = Router();
   final List<shelf.Middleware> _globalMiddlewares = [];
   final Configuration _config;
 
   HarpyServer? _server;
-
-  /// Create a new Harpy application
-  Harpy({Configuration? config})
-      : _config = config ?? Configuration.fromEnvironment();
+  Database? _database;
 
   /// Add global middleware to the application
   void use(shelf.Middleware middleware) {
@@ -53,11 +55,7 @@ class Harpy {
     bool logHeaders = false,
     Function(String)? logger,
   }) {
-    use(logging(
-      logBody: logBody,
-      logHeaders: logHeaders,
-      logger: logger,
-    ));
+    use(logging(logBody: logBody, logHeaders: logHeaders, logger: logger));
   }
 
   /// Add authentication middleware
@@ -71,6 +69,23 @@ class Harpy {
       excludePaths: excludePaths,
       customValidator: customValidator,
     ));
+  }
+
+  /// Connect to database and enable database middleware
+  Future<void> connectToDatabase(Map<String, dynamic> dbConfig) async {
+    _database = await Database.connect(dbConfig);
+    // Enable database in context for middleware
+  }
+
+  /// Get database instance
+  Database? get database => _database;
+
+  /// Disconnect from database
+  Future<void> disconnectDatabase() async {
+    if (_database != null) {
+      await _database!.close();
+      _database = null;
+    }
   }
 
   // Route methods
@@ -144,10 +159,19 @@ class Harpy {
     SecurityContext? securityContext,
     bool shared = false,
   }) async {
+    if (_server?.isRunning ?? false) {
+      throw StateError(
+        'Server is already running. Stop it before starting again.',
+      );
+    }
+
     final String serverHost =
-        host ?? _config.get<String>('host')?.toString() ?? 'localhost';
-    final int serverPort =
-        port ?? int.tryParse(_config.get<String>('port').toString()) ?? 8080;
+        host ?? (_config.get<String>('host') as String?) ?? 'localhost';
+    final int serverPort = port ?? _getValidPort() ?? 8080;
+
+    if (serverPort < 1 || serverPort > 65535) {
+      throw ArgumentError('Port must be between 1 and 65535, got: $serverPort');
+    }
 
     _server = HarpyServer(
       host: serverHost,
@@ -160,6 +184,18 @@ class Harpy {
     await _server!.listen(pipeline);
   }
 
+  int? _getValidPort() {
+    final portConfig = _config.get<String>('port') as String?;
+    if (portConfig == null) return null;
+
+    final port = int.tryParse(portConfig);
+    if (port == null) {
+      print('Warning: Invalid port configuration "$portConfig", using default');
+      return null;
+    }
+    return port;
+  }
+
   /// Start the server using shelf_io.serve directly (for compatibility)
   Future<HttpServer> serve({
     String? host,
@@ -168,9 +204,8 @@ class Harpy {
     bool shared = false,
   }) async {
     final String serverHost =
-        host ?? _config.get<String>('host')?.toString() ?? 'localhost';
-    final int serverPort =
-        port ?? int.tryParse(_config.get<String>('port').toString()) ?? 8080;
+        host ?? (_config.get<String>('host') as String?) ?? 'localhost';
+    final int serverPort = port ?? _getValidPort() ?? 8080;
 
     final pipeline = _createPipeline();
 
@@ -194,6 +229,9 @@ class Harpy {
       await _server!.close(force: force);
       _server = null;
     }
+
+    // Close database connection
+    await disconnectDatabase();
   }
 
   /// Get application configuration

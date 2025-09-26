@@ -2,6 +2,7 @@
 
 import 'dart:convert';
 import 'dart:io';
+import 'package:collection/collection.dart';
 import 'package:shelf/shelf.dart' as shelf;
 
 /// Harpy HTTP Response wrapper
@@ -131,7 +132,13 @@ class Response {
 
   /// Infer content type from file extension
   String _inferContentType(String filePath) {
-    final extension = filePath.split('.').lastOrNull?.toLowerCase();
+    if (filePath.isEmpty) return 'application/octet-stream';
+
+    final parts = filePath.split('.');
+    if (parts.length < 2) return 'application/octet-stream';
+
+    final extension = parts.lastOrNull?.toLowerCase();
+    if (extension == null) return 'application/octet-stream';
 
     switch (extension) {
       case 'html':
