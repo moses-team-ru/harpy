@@ -107,3 +107,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **Deprecated Function** - Replaced `getUpdatedRows()` with `updatedRows` in SQLite adapter for compatibility with sqlite3 ^2.9.0
+- **Router 404 Bug** - Fixed critical bug where all routes returned 404 errors. The router was using `request.url.path` which returns paths without leading slash (e.g., `""` for `/`, `"test"` for `/test`), while regex patterns expected paths with leading slash (e.g., `^/$`, `^/test$`). Changed to use `request.requestedUri.path` and added path normalization for trailing slashes. Added 30 comprehensive routing tests (14 integration tests + 16 edge case tests) to prevent regressions.

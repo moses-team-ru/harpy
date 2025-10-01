@@ -1,6 +1,6 @@
 name: harpy
 description: A modern, fast, and lightweight backend framework for Dart
-version: 0.1.0+1
+version: 0.1.0+2
 homepage: https://moses-team.ru
 repository: https://github.com/moses-team-ru/harpy
 
@@ -21,6 +21,7 @@ dependencies:
 dev_dependencies:
   lints: ^6.0.0
   test: ^1.26.3
+  http: ^1.5.0
 
 executables:
   harpy:

@@ -81,7 +81,13 @@ class Router {
   /// Convert router to Shelf handler
   shelf.Handler toHandler() => (shelf.Request request) async {
         final String method = request.method;
-        final String path = request.url.path;
+        // Use requestedUri.path instead of url.path to get the path with leading slash
+        String path = request.requestedUri.path;
+
+        // Normalize path to remove trailing slash (except for root path)
+        if (path != '/' && path.endsWith('/')) {
+          path = path.substring(0, path.length - 1);
+        }
 
         // Find matching route
         for (final Route route in _routes) {
