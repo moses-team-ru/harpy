@@ -11,44 +11,35 @@ class Router {
   final List<shelf.Middleware> _middlewares = <shelf.Middleware>[];
 
   /// Add middleware to the router
-  void use(shelf.Middleware middleware) {
-    _middlewares.add(middleware);
-  }
+  void use(shelf.Middleware middleware) => _middlewares.add(middleware);
 
   /// Add a GET route
-  void get(String pattern, Handler handler) {
-    _addRoute('GET', pattern, handler);
-  }
+  void get(String pattern, Handler handler) =>
+      _addRoute('GET', pattern, handler);
 
   /// Add a POST route
-  void post(String pattern, Handler handler) {
-    _addRoute('POST', pattern, handler);
-  }
+  void post(String pattern, Handler handler) =>
+      _addRoute('POST', pattern, handler);
 
   /// Add a PUT route
-  void put(String pattern, Handler handler) {
-    _addRoute('PUT', pattern, handler);
-  }
+  void put(String pattern, Handler handler) =>
+      _addRoute('PUT', pattern, handler);
 
   /// Add a DELETE route
-  void delete(String pattern, Handler handler) {
-    _addRoute('DELETE', pattern, handler);
-  }
+  void delete(String pattern, Handler handler) =>
+      _addRoute('DELETE', pattern, handler);
 
   /// Add a PATCH route
-  void patch(String pattern, Handler handler) {
-    _addRoute('PATCH', pattern, handler);
-  }
+  void patch(String pattern, Handler handler) =>
+      _addRoute('PATCH', pattern, handler);
 
   /// Add a HEAD route
-  void head(String pattern, Handler handler) {
-    _addRoute('HEAD', pattern, handler);
-  }
+  void head(String pattern, Handler handler) =>
+      _addRoute('HEAD', pattern, handler);
 
   /// Add a OPTIONS route
-  void options(String pattern, Handler handler) {
-    _addRoute('OPTIONS', pattern, handler);
-  }
+  void options(String pattern, Handler handler) =>
+      _addRoute('OPTIONS', pattern, handler);
 
   /// Add a route for any HTTP method
   void any(String pattern, Handler handler) {

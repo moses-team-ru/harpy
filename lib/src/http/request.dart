@@ -32,9 +32,7 @@ class Request {
   Map<String, String> get params => Map.unmodifiable(_params);
 
   /// Add a route parameter
-  void addParam(String key, String value) {
-    _params[key] = value;
-  }
+  void addParam(String key, String value) => _params[key] = value;
 
   /// Get request body as string
   Future<String> text() => _request.readAsString();

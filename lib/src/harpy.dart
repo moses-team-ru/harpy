@@ -28,9 +28,7 @@ class Harpy {
   Database? _database;
 
   /// Add global middleware to the application
-  void use(shelf.Middleware middleware) {
-    _globalMiddlewares.add(middleware);
-  }
+  void use(shelf.Middleware middleware) => _globalMiddlewares.add(middleware);
 
   /// Add CORS middleware with default settings
   void enableCors({
@@ -39,42 +37,39 @@ class Harpy {
     List<String>? allowedHeaders,
     bool credentials = false,
     int maxAge = 86400,
-  }) {
-    use(cors(
-      origin: origin,
-      allowedMethods: allowedMethods,
-      allowedHeaders: allowedHeaders,
-      credentials: credentials,
-      maxAge: maxAge,
-    ));
-  }
+  }) =>
+      use(cors(
+        origin: origin,
+        allowedMethods: allowedMethods,
+        allowedHeaders: allowedHeaders,
+        credentials: credentials,
+        maxAge: maxAge,
+      ));
 
   /// Add logging middleware
   void enableLogging({
     bool logBody = false,
     bool logHeaders = false,
     Function(String)? logger,
-  }) {
-    use(logging(logBody: logBody, logHeaders: logHeaders, logger: logger));
-  }
+  }) =>
+      use(logging(logBody: logBody, logHeaders: logHeaders, logger: logger));
 
   /// Add authentication middleware
   void enableAuth({
     String? jwtSecret,
     List<String> excludePaths = const [],
     Function(String token)? customValidator,
-  }) {
-    use(auth(
-      jwtSecret: jwtSecret,
-      excludePaths: excludePaths,
-      customValidator: customValidator,
-    ));
-  }
+  }) =>
+      use(auth(
+        jwtSecret: jwtSecret,
+        excludePaths: excludePaths,
+        customValidator: customValidator,
+      ));
 
   /// Connect to database and enable database middleware
   Future<void> connectToDatabase(Map<String, dynamic> dbConfig) async {
-    _database = await Database.connect(dbConfig);
     // Enable database in context for middleware
+    _database = await Database.connect(dbConfig);
   }
 
   /// Get database instance
@@ -91,54 +86,39 @@ class Harpy {
   // Route methods
 
   /// Add a GET route
-  void get(String pattern, Handler handler) {
-    _router.get(pattern, handler);
-  }
+  void get(String pattern, Handler handler) => _router.get(pattern, handler);
 
   /// Add a POST route
-  void post(String pattern, Handler handler) {
-    _router.post(pattern, handler);
-  }
+  void post(String pattern, Handler handler) => _router.post(pattern, handler);
 
   /// Add a PUT route
-  void put(String pattern, Handler handler) {
-    _router.put(pattern, handler);
-  }
+  void put(String pattern, Handler handler) => _router.put(pattern, handler);
 
   /// Add a DELETE route
-  void delete(String pattern, Handler handler) {
-    _router.delete(pattern, handler);
-  }
+  void delete(String pattern, Handler handler) =>
+      _router.delete(pattern, handler);
 
   /// Add a PATCH route
-  void patch(String pattern, Handler handler) {
-    _router.patch(pattern, handler);
-  }
+  void patch(String pattern, Handler handler) =>
+      _router.patch(pattern, handler);
 
   /// Add a HEAD route
-  void head(String pattern, Handler handler) {
-    _router.head(pattern, handler);
-  }
+  void head(String pattern, Handler handler) => _router.head(pattern, handler);
 
   /// Add a OPTIONS route
-  void options(String pattern, Handler handler) {
-    _router.options(pattern, handler);
-  }
+  void options(String pattern, Handler handler) =>
+      _router.options(pattern, handler);
 
   /// Add a route for any HTTP method
-  void any(String pattern, Handler handler) {
-    _router.any(pattern, handler);
-  }
+  void any(String pattern, Handler handler) => _router.any(pattern, handler);
 
   /// Add a route for multiple HTTP methods
-  void match(List<String> methods, String pattern, Handler handler) {
-    _router.match(methods, pattern, handler);
-  }
+  void match(List<String> methods, String pattern, Handler handler) =>
+      _router.match(methods, pattern, handler);
 
   /// Mount a sub-router with prefix
-  void mount(String prefix, Router subrouter) {
-    _router.mount(prefix, subrouter);
-  }
+  void mount(String prefix, Router subrouter) =>
+      _router.mount(prefix, subrouter);
 
   /// Create the Shelf pipeline with all middlewares
   shelf.Handler _createPipeline() {

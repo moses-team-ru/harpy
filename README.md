@@ -74,7 +74,7 @@ dart pub global activate harpy
 harpy create my_api
 cd my_api
 dart pub get
-dart run
+dart run bin/main.dart
 ```
 
 ### Basic Usage

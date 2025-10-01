@@ -66,7 +66,7 @@ We use GitHub issues to track public bugs. Report a bug by [opening a new issue]
    ```bash
    cd example
    dart pub get
-   dart run main.dart
+   dart run bin/main.dart
    ```
 
 ## Code of Conduct
