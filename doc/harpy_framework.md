@@ -19,7 +19,7 @@ Add Harpy to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  harpy: ^0.1.0
+  harpy: ^0.1.1
 ```
 
 Or install globally for CLI tools:

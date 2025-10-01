@@ -77,12 +77,13 @@ Future<void> createProject(List<String> args) async {
 name: $projectName
 description: A Harpy backend application
 version: 1.0.0
+publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
 
 dependencies:
-  harpy: ^0.1.0
+  harpy: ^0.1.1
 
 dev_dependencies:
   lints: ^3.0.0

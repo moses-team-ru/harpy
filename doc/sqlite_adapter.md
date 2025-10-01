@@ -17,7 +17,7 @@ The SQLite adapter is included with Harpy framework. The required dependencies a
 
 ```yaml
 dependencies:
-  harpy: ^0.1.0
+  harpy: ^0.1.1
   sqlite3: ^2.4.2  # Automatically included
 ```
 
