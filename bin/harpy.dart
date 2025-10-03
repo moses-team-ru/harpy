@@ -47,8 +47,8 @@ Examples:
 }
 
 void printVersion() {
-  print('Harpy CLI v0.1.0');
-  print('Framework: Harpy v0.1.0');
+  print('Harpy CLI v0.1.1+4');
+  print('Framework: Harpy v0.1.1+4');
 }
 
 Future<void> createProject(List<String> args) async {
@@ -120,8 +120,95 @@ void main() async {
 }
 ''';
 
-  await File('$projectName/bin/main.dart').create(recursive: true);
-  await File('$projectName/bin/main.dart').writeAsString(mainContent);
+  await File('$projectName/lib/main.dart').create(recursive: true);
+  await File('$projectName/lib/main.dart').writeAsString(mainContent);
+
+  // Create CLI utility for project management
+  final String cliContent = '''
+#!/usr/bin/env dart
+
+import 'dart:io';
+
+void main(List<String> args) async {
+  if (args.isEmpty) {
+    printHelp();
+    exit(0);
+  }
+
+  final command = args[0];
+
+  switch (command) {
+    case 'serve':
+      await serve();
+      break;
+    case 'migrate':
+      await migrate();
+      break;
+    case 'version':
+      printVersion();
+      break;
+    case 'help':
+    case '--help':
+    case '-h':
+      printHelp();
+      break;
+    default:
+      print('Unknown command: \\\$command');
+      printHelp();
+      exit(1);
+  }
+}
+
+Future<void> serve() async {
+  print('🚀 Starting $projectName server...');
+  print('');
+  
+  // Run the main application
+  final result = await Process.start(
+    'dart',
+    ['run', 'lib/main.dart'],
+    mode: ProcessStartMode.inheritStdio,
+  );
+  
+  await result.exitCode;
+}
+
+Future<void> migrate() async {
+  print('🔄 Running database migrations...');
+  
+  // TODO: Implement database migration logic
+  // This is a placeholder for migration functionality
+  print('Migration functionality not yet implemented.');
+  print('You can add your migration logic here.');
+}
+
+void printVersion() {
+  print('$projectName CLI v1.0.0');
+  print('Harpy Framework v0.1.1');
+}
+
+void printHelp() {
+  print(\'\'\'
+$projectName - Project Management CLI
+
+Usage:
+  dart run bin/$projectName.dart <command>
+
+Available commands:
+  serve      Start the development server
+  migrate    Run database migrations
+  version    Show version information
+  help       Show this help message
+
+Examples:
+  dart run bin/$projectName.dart serve
+  dart run bin/$projectName.dart migrate
+\'\'\');
+}
+''';
+
+  await File('$projectName/bin/$projectName.dart').create(recursive: true);
+  await File('$projectName/bin/$projectName.dart').writeAsString(cliContent);
 
   // Create README.md
   final String readmeContent = '''
@@ -136,15 +223,56 @@ A Harpy backend application.
    dart pub get
    ```
 
-2. Run the application:
+2. Run the application using the CLI tool:
    ```bash
-   dart run bin/main.dart
+   dart run bin/$projectName.dart serve
+   ```
+
+   Or run directly:
+   ```bash
+   dart run lib/main.dart
    ```
 
 3. Test the API:
    ```bash
    curl http://localhost:3000
    ```
+
+## Project Structure
+
+```
+$projectName/
+  ├── bin/
+  │   └── $projectName.dart    # CLI management tool
+  ├── lib/
+  │   └── main.dart            # Main application
+  ├── pubspec.yaml
+  └── README.md
+```
+
+## CLI Commands
+
+The project includes a CLI tool for managing your application:
+
+- **serve** - Start the development server
+  ```bash
+  dart run bin/$projectName.dart serve
+  ```
+
+- **migrate** - Run database migrations (when configured)
+  ```bash
+  dart run bin/$projectName.dart migrate
+  ```
+
+- **version** - Show version information
+  ```bash
+  dart run bin/$projectName.dart version
+  ```
+
+- **help** - Show help message
+  ```bash
+  dart run bin/$projectName.dart help
+  ```
 
 ## API Endpoints
 
@@ -153,9 +281,10 @@ A Harpy backend application.
 
 ## Development
 
-Add your routes and middleware in `bin/main.dart`.
+Add your routes and middleware in `lib/main.dart`. 
+The CLI tool in `bin/$projectName.dart` can be extended with additional commands as needed.
 
-For more information about Harpy, visit: https://github.com/yourusername/harpy
+For more information about Harpy, visit: https://github.com/moses-team-ru/harpy
 ''';
 
   await File('$projectName/README.md').writeAsString(readmeContent);
@@ -182,10 +311,24 @@ build/
 
   print('✅ Project $projectName created successfully!');
   print('');
-  print('Next steps:');
+  print('📁 Project structure:');
+  print('   $projectName/');
+  print('     ├── bin/');
+  print('     │   └── $projectName.dart    # CLI management tool');
+  print('     ├── lib/');
+  print('     │   └── main.dart            # Main application');
+  print('     ├── pubspec.yaml');
+  print('     └── README.md');
+  print('');
+  print('🚀 Next steps:');
   print('  cd $projectName');
   print('  dart pub get');
-  print('  dart run bin/main.dart');
+  print('  dart run bin/$projectName.dart serve');
+  print('');
+  print('💡 Available CLI commands:');
+  print('  dart run bin/$projectName.dart serve    # Start the server');
+  print('  dart run bin/$projectName.dart migrate  # Run migrations');
+  print('  dart run bin/$projectName.dart help     # Show help');
   print('');
   print('Your API will be available at http://localhost:3000');
 }

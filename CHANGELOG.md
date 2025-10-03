@@ -5,6 +5,37 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1+4] - 2025-10-03
+
+### Changed
+- **Project Structure Refactoring**: Generated projects now use `lib/main.dart` instead of `bin/main.dart` for the main application
+  - Main application code now resides in `lib/` following Dart conventions
+  - Improves testability and code organization
+  - Allows for better code reuse and modularization
+
+### Added
+- **CLI Management Tool**: Each generated project now includes a CLI utility in `bin/<project_name>.dart`
+  - `serve` command - Starts the development server
+  - `migrate` command - Placeholder for database migrations (ready for implementation)
+  - `version` command - Shows project and framework version
+  - `help` command - Displays available commands and usage
+- Enhanced project scaffolding with improved documentation
+- Updated README templates for generated projects with CLI usage examples
+- Better output messages after project creation showing project structure and available commands
+
+### Technical Details
+- CLI utility supports extensibility - developers can add custom commands
+- Local project management without global installation conflicts
+- Cleaner separation between application logic (`lib/`) and management tools (`bin/`)
+
+### Migration Guide
+For existing projects created with earlier versions:
+1. Move `bin/main.dart` to `lib/main.dart`
+2. Optionally create a CLI utility in `bin/<your_project>.dart` (see template in new projects)
+3. Update your IDE run configurations if needed
+
+## [0.1.1+3] - Previous Version
+
 ### Added
 - Initial framework structure
 - HTTP server implementation  

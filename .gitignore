@@ -1,6 +1,7 @@
 # Dart and Flutter specific files
 .dart_tool/
-.packages
+.packages/
+.copilot/
 pubspec.lock
 build/
 .pub/

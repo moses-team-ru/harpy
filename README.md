@@ -74,8 +74,12 @@ dart pub global activate harpy
 harpy create my_api
 cd my_api
 dart pub get
-dart run bin/main.dart
+dart run bin/my_api.dart serve
 ```
+
+The generated project includes:
+- `lib/main.dart` - Main application code
+- `bin/my_api.dart` - CLI management tool with commands: serve, migrate, help, version
 
 ### Basic Usage
 
