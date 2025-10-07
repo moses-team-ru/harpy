@@ -1,22 +1,24 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:talker/talker.dart';
+
 /// Configuration management for Harpy applications
 ///
 /// Supports loading configuration from environment variables, JSON files,
 /// and YAML files with a flexible fallback system.
 class Configuration {
+  /// Create configuration from environment variables only
+  factory Configuration.fromEnvironment() {
+    final Configuration config = Configuration._().._loadFromEnvironment();
+    return config;
+  }
+
   /// Create configuration from a JSON file
   factory Configuration.fromJsonFile(String filePath) {
     final Configuration config = Configuration._()
       .._loadFromJsonFile(filePath)
       .._loadFromEnvironment(); // Environment variables override file values
-    return config;
-  }
-
-  /// Create configuration from environment variables only
-  factory Configuration.fromEnvironment() {
-    final Configuration config = Configuration._().._loadFromEnvironment();
     return config;
   }
 
@@ -30,6 +32,9 @@ class Configuration {
   }
 
   Configuration._();
+
+  /// Talker instance
+  final Talker _talker = Talker();
   final Map<String, Object?> _config = <String, Object?>{};
 
   /// Get a configuration value by key
@@ -127,8 +132,8 @@ class Configuration {
           }
           continue;
         } on Exception catch (e) {
-          print(
-            'Warning: Failed to parse environment variable "$key" as JSON: $e',
+          _talker.warning(
+            'Failed to parse environment variable "$key" as JSON: $e',
           );
         }
       }
@@ -207,7 +212,7 @@ class Configuration {
 
   /// Print all configuration (for debugging)
   void printConfig() {
-    print('Configuration:');
+    _talker.info('Configuration:');
     _printMap(_config, '  ');
   }
 
@@ -217,13 +222,13 @@ class Configuration {
       final Object? value = entry.value;
 
       if (value is Map<String, Object?>) {
-        print('$indent$key:');
+        _talker.debug('$indent$key:');
         _printMap(value, '$indent  ');
       } else {
         // Hide sensitive values
         final String displayValue =
             _isSensitiveKey(key) ? '[HIDDEN]' : value.toString();
-        print('$indent$key: $displayValue');
+        _talker.debug('$indent$key: $displayValue');
       }
     }
   }

@@ -2,6 +2,17 @@
 
 import 'dart:io';
 
+import 'package:talker/talker.dart';
+
+const String version = 'Harpy CLI v0.1.2+1';
+
+final Talker talker = Talker(
+  settings: TalkerSettings(titles: {
+    TalkerKey.info: version,
+    TalkerKey.verbose: version,
+  }),
+);
+
 void main(List<String> arguments) async {
   if (arguments.isEmpty) {
     printUsage();
@@ -22,14 +33,13 @@ void main(List<String> arguments) async {
       printUsage();
       break;
     default:
-      print('Unknown command: ${command ?? '--unknown--'}');
+      talker.warning('Unknown command: ${command ?? '--unknown--'}');
       printUsage();
       exit(1);
   }
 }
 
-void printUsage() {
-  print('''
+void printUsage() => talker.verbose('''
 Harpy CLI - A tool for creating and managing Harpy applications
 
 Usage:
@@ -44,17 +54,14 @@ Examples:
   harpy create my_api   Create a new project called 'my_api'
   harpy version         Show version
 ''');
-}
 
-void printVersion() {
-  print('Harpy CLI v0.1.1+4');
-  print('Framework: Harpy v0.1.1+4');
-}
+void printVersion() => talker.info('Framework: Harpy v0.1.2+1');
 
 Future<void> createProject(List<String> args) async {
   if (args.isEmpty) {
-    print('Error: Project name is required');
-    print('Usage: harpy create <project_name>');
+    talker
+      ..error('Project name is required!')
+      ..verbose('Usage: harpy create <project_name>');
     exit(1);
   }
 
@@ -63,11 +70,11 @@ Future<void> createProject(List<String> args) async {
 
   // ignore: avoid_slow_async_io
   if (await projectDir.exists()) {
-    print('Error: Directory $projectName already exists');
+    talker.error('Directory $projectName already exists');
     exit(1);
   }
 
-  print('Creating Harpy project: $projectName');
+  talker.verbose('Creating Harpy project: $projectName');
 
   // Create project directory
   await projectDir.create();
@@ -184,7 +191,7 @@ Future<void> migrate() async {
 
 void printVersion() {
   print('$projectName CLI v1.0.0');
-  print('Harpy Framework v0.1.1');
+  print(${version.replaceFirst('CLI', 'Framework')});
 }
 
 void printHelp() {
@@ -309,26 +316,26 @@ build/
 
   await File('$projectName/.gitignore').writeAsString(gitignoreContent);
 
-  print('✅ Project $projectName created successfully!');
-  print('');
-  print('📁 Project structure:');
-  print('   $projectName/');
-  print('     ├── bin/');
-  print('     │   └── $projectName.dart    # CLI management tool');
-  print('     ├── lib/');
-  print('     │   └── main.dart            # Main application');
-  print('     ├── pubspec.yaml');
-  print('     └── README.md');
-  print('');
-  print('🚀 Next steps:');
-  print('  cd $projectName');
-  print('  dart pub get');
-  print('  dart run bin/$projectName.dart serve');
-  print('');
-  print('💡 Available CLI commands:');
-  print('  dart run bin/$projectName.dart serve    # Start the server');
-  print('  dart run bin/$projectName.dart migrate  # Run migrations');
-  print('  dart run bin/$projectName.dart help     # Show help');
-  print('');
-  print('Your API will be available at http://localhost:3000');
+  talker
+    ..info('✅ Project $projectName created successfully!')
+    ..verbose('📁 Project structure:'
+        '   $projectName/'
+        '     ├── bin/'
+        '     │   └── $projectName.dart    # CLI management tool'
+        '     ├── lib/'
+        '     │   └── main.dart            # Main application'
+        '     ├── pubspec.yaml'
+        '     └── README.md'
+        ' '
+        '🚀 Next steps:'
+        '  cd $projectName'
+        '  dart pub get'
+        '  dart run bin/$projectName.dart serve'
+        ' '
+        '💡 Available CLI commands:'
+        '  dart run bin/$projectName.dart serve    # Start the server'
+        '  dart run bin/$projectName.dart migrate  # Run migrations'
+        '  dart run bin/$projectName.dart help     # Show help'
+        ' '
+        'Your API will be available at http://localhost:3000');
 }

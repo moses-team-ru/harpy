@@ -2,6 +2,7 @@
 
 import 'package:harpy/harpy.dart';
 import 'package:shelf/shelf.dart' as shelf;
+import 'package:talker/talker.dart';
 
 /// Function signature for Harpy route handlers
 typedef Handler = dynamic Function(Request req, Response res);
@@ -38,8 +39,10 @@ shelf.Handler harpyToShelfHandler(Handler handler) =>
         // Default empty response
         return res.empty();
       } on Exception catch (error, stackTrace) {
-        print('Error in handler: $error');
-        print('Stack trace: $stackTrace');
+        /// Talker instance for logging
+        Talker()
+          ..error('Error in handler: $error')
+          ..error('Stack trace: $stackTrace');
 
         return res.internalServerError({
           'error': 'Internal server error',

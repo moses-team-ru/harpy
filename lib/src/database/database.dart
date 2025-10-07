@@ -4,6 +4,7 @@ import 'package:harpy/src/database/adapters/sqlite_adapter.dart' as sqlite;
 import 'package:harpy/src/database/database_connection.dart';
 import 'package:harpy/src/database/model.dart';
 import 'package:harpy/src/database/query_builder.dart';
+import 'package:talker/talker.dart';
 
 /// Main database manager class
 ///
@@ -16,6 +17,9 @@ class Database {
 
   /// Database configuration
   final Map<String, dynamic> config;
+
+  /// Talker instance for logging
+  final Talker _talker = Talker();
 
   /// Registered model registries
   final Map<String, ModelRegistry> _modelRegistries = {};
@@ -81,7 +85,7 @@ class Database {
       await transaction.commit();
       return result;
     } on Exception catch (e) {
-      print('Transaction failed: $e');
+      _talker.error('Transaction failed: $e');
       await transaction?.rollback();
       rethrow;
     }

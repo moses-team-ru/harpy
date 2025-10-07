@@ -10,6 +10,7 @@ import 'package:harpy/src/routing/router.dart';
 import 'package:harpy/src/server/harpy_server.dart';
 import 'package:shelf/shelf.dart' as shelf;
 import 'package:shelf/shelf_io.dart' as shelf_io;
+import 'package:talker/talker.dart';
 
 /// Main Harpy application class
 ///
@@ -21,6 +22,7 @@ class Harpy {
   Harpy({Configuration? config})
       : _config = config ?? Configuration.fromEnvironment();
   final Router _router = Router();
+  final Talker _talker = Talker();
   final List<shelf.Middleware> _globalMiddlewares = [];
   final Configuration _config;
 
@@ -170,7 +172,8 @@ class Harpy {
 
     final port = int.tryParse(portConfig);
     if (port == null) {
-      print('Warning: Invalid port configuration "$portConfig", using default');
+      _talker
+          .warning('Invalid port configuration "$portConfig", using default');
       return null;
     }
     return port;
@@ -198,7 +201,9 @@ class Harpy {
     );
 
     final protocol = securityContext != null ? 'https' : 'http';
-    print('🚀 Harpy server listening on $protocol://$serverHost:$serverPort');
+    _talker.info(
+      '🚀 Harpy server listening on $protocol://$serverHost:$serverPort',
+    );
 
     return server;
   }
@@ -224,7 +229,5 @@ class Harpy {
   bool get isRunning => _server?.isRunning ?? false;
 
   /// Print all registered routes (for debugging)
-  void printRoutes() {
-    _router.printRoutes();
-  }
+  void printRoutes() => _router.printRoutes();
 }

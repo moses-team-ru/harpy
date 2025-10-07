@@ -25,5 +25,7 @@ export 'src/middleware/middleware.dart';
 export 'src/routing/route.dart';
 // Routing
 export 'src/routing/router.dart';
+// Scheduler
+export 'src/scheduler/scheduler.dart';
 // Core server
 export 'src/server/harpy_server.dart';

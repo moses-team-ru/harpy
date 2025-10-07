@@ -5,6 +5,7 @@ import 'dart:async';
 import 'package:collection/collection.dart';
 import 'package:harpy/src/database/database_connection.dart';
 import 'package:mongo_dart/mongo_dart.dart' as mongo;
+import 'package:talker/talker.dart';
 
 /// MongoDB database connection implementation using mongo_dart package
 class MongoDBAdapter implements DatabaseConnection {
@@ -37,6 +38,9 @@ class MongoDBAdapter implements DatabaseConnection {
 
   final mongo.Db _db;
   bool _isConnected = true; // Already connected after creation
+
+  /// Talker instance for logging
+  final Talker _talker = Talker();
 
   @override
   bool get isConnected => _isConnected && _db.isConnected;
@@ -156,7 +160,7 @@ class MongoDBAdapter implements DatabaseConnection {
       await _db.collection('test').findOne(<String, dynamic>{});
       return true;
     } on Exception catch (e) {
-      print('MongoDB ping failed: $e');
+      _talker.error('MongoDB ping failed: $e');
       return false;
     }
   }

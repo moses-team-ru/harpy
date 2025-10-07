@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:harpy/src/database/database_connection.dart';
+import 'package:talker/talker.dart';
 
 /// Database schema migration system
 ///
@@ -43,6 +44,9 @@ class MigrationManager {
   /// Database connection
   final DatabaseConnection connection;
 
+  /// Talker instance
+  final Talker _talker = Talker();
+
   /// List of registered migrations
   final List<Migration> _migrations = <Migration>[];
 
@@ -57,15 +61,13 @@ class MigrationManager {
   }
 
   /// Initialize migration tracking table
-  Future<void> initialize() async {
-    await connection.execute('''
-      CREATE TABLE IF NOT EXISTS $_migrationsTable (
-        version VARCHAR(255) PRIMARY KEY,
-        description TEXT NOT NULL,
-        executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    ''');
-  }
+  Future<void> initialize() => connection.execute('''
+    CREATE TABLE IF NOT EXISTS $_migrationsTable (
+      version VARCHAR(255) PRIMARY KEY,
+      description TEXT NOT NULL,
+      executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  ''');
 
   /// Get list of executed migrations
   Future<Set<String>> getExecutedMigrations() async {
@@ -77,7 +79,7 @@ class MigrationManager {
           .toSet();
     } on Exception catch (e) {
       // If the migrations table doesn't exist yet, return empty set
-      print('Warning: Failed to fetch executed migrations: $e');
+      _talker.warning('Failed to fetch executed migrations: $e');
       // Table might not exist yet
       return <String>{};
     }
@@ -92,14 +94,16 @@ class MigrationManager {
         .toList();
 
     if (pending.isEmpty) {
-      print('No pending migrations.');
+      _talker.info('No pending migrations.');
       return <String>[];
     }
 
     final List<String> migrated = <String>[];
 
     for (final Migration migration in pending) {
-      print('Running migration ${migration.version}: ${migration.description}');
+      _talker.verbose(
+        'Running migration ${migration.version}: ${migration.description}',
+      );
 
       try {
         final SchemaBuilder schema = SchemaBuilder(connection);
@@ -112,10 +116,11 @@ class MigrationManager {
         );
 
         migrated.add(migration.version);
-        print('✅ Migration ${migration.version} completed');
+        _talker.info('✅ Migration ${migration.version} completed');
       } catch (e, stackTrace) {
-        print('❌ Migration ${migration.version} failed: $e');
-        print('Stack trace: $stackTrace');
+        _talker
+          ..error('❌ Migration ${migration.version} failed: $e')
+          ..error('Stack trace: $stackTrace');
         rethrow;
       }
     }
@@ -134,7 +139,7 @@ class MigrationManager {
         .toList();
 
     if (toRollback.isEmpty) {
-      print('No migrations to rollback.');
+      _talker.info('No migrations to rollback.');
       return <String>[];
     }
 
@@ -142,13 +147,13 @@ class MigrationManager {
 
     for (final Migration migration in toRollback) {
       if (migration.down == null) {
-        print(
+        _talker.error(
           '❌ Migration ${migration.version} cannot be rolled back (no down function)',
         );
         break;
       }
 
-      print(
+      _talker.verbose(
         'Rolling back migration ${migration.version}: ${migration.description}',
       );
 
@@ -163,10 +168,11 @@ class MigrationManager {
         );
 
         rolledBack.add(migration.version);
-        print('✅ Migration ${migration.version} rolled back');
+        _talker.info('✅ Migration ${migration.version} rolled back');
       } catch (e, stackTrace) {
-        print('❌ Rollback of ${migration.version} failed: $e');
-        print('Stack trace: $stackTrace');
+        _talker
+          ..error('❌ Rollback of ${migration.version} failed: $e')
+          ..error('Stack trace: $stackTrace');
         rethrow;
       }
     }
@@ -188,7 +194,7 @@ class MigrationManager {
 
   /// Reset all migrations (dangerous!)
   Future<void> reset() async {
-    print('⚠️  Resetting all migrations...');
+    _talker.warning('⚠️  Resetting all migrations...');
 
     final Set<String> executed = await getExecutedMigrations();
     final List<Migration> toRollback = _migrations
@@ -203,14 +209,14 @@ class MigrationManager {
           final SchemaBuilder schema = SchemaBuilder(connection);
           await migration.down!(schema);
         } on Exception catch (e) {
-          print('Warning: Failed to rollback ${migration.version}: $e');
+          _talker.warning('Failed to rollback ${migration.version}: $e');
         }
       }
     }
 
     // Clear migration table
     await connection.execute('DELETE FROM $_migrationsTable');
-    print('✅ All migrations reset');
+    _talker.info('✅ All migrations reset');
   }
 }
 
@@ -257,29 +263,25 @@ class SchemaBuilder {
   }
 
   /// Drop a table
-  Future<void> dropTable(String tableName) async {
-    await connection.execute('DROP TABLE IF EXISTS $tableName');
-  }
+  Future<void> dropTable(String tableName) =>
+      connection.execute('DROP TABLE IF EXISTS $tableName');
 
   /// Rename a table
-  Future<void> renameTable(String oldName, String newName) async {
-    await connection.execute('ALTER TABLE $oldName RENAME TO $newName');
-  }
+  Future<void> renameTable(String oldName, String newName) =>
+      connection.execute('ALTER TABLE $oldName RENAME TO $newName');
 
   /// Add a column to existing table
   Future<void> addColumn(
     String tableName,
     String columnName,
     String definition,
-  ) async {
-    await connection
-        .execute('ALTER TABLE $tableName ADD COLUMN $columnName $definition');
-  }
+  ) =>
+      connection
+          .execute('ALTER TABLE $tableName ADD COLUMN $columnName $definition');
 
   /// Drop a column
-  Future<void> dropColumn(String tableName, String columnName) async {
-    await connection.execute('ALTER TABLE $tableName DROP COLUMN $columnName');
-  }
+  Future<void> dropColumn(String tableName, String columnName) =>
+      connection.execute('ALTER TABLE $tableName DROP COLUMN $columnName');
 
   /// Create an index
   Future<void> createIndex(
@@ -296,14 +298,12 @@ class SchemaBuilder {
   }
 
   /// Drop an index
-  Future<void> dropIndex(String indexName) async {
-    await connection.execute('DROP INDEX IF EXISTS $indexName');
-  }
+  Future<void> dropIndex(String indexName) =>
+      connection.execute('DROP INDEX IF EXISTS $indexName');
 
   /// Execute raw SQL
-  Future<void> execute(String sql, [List<Object?>? parameters]) async {
-    await connection.execute(sql, parameters);
-  }
+  Future<void> execute(String sql, [List<Object?>? parameters]) =>
+      connection.execute(sql, parameters);
 }
 
 /// Table builder for creating table definitions

@@ -5,6 +5,7 @@ import 'dart:async';
 import 'package:collection/collection.dart';
 import 'package:harpy/src/database/database_connection.dart';
 import 'package:mysql1/mysql1.dart' as mysql;
+import 'package:talker/talker.dart';
 
 /// MySQL database connection implementation using mysql1 package
 class MySQLAdapter implements DatabaseConnection {
@@ -32,6 +33,9 @@ class MySQLAdapter implements DatabaseConnection {
 
   final mysql.MySqlConnection _connection;
   bool _isConnected = true; // Already connected after creation
+
+  /// Talker instance for logging
+  final Talker _talker = Talker();
 
   @override
   bool get isConnected => _isConnected;
@@ -104,7 +108,7 @@ class MySQLAdapter implements DatabaseConnection {
       await _connection.query('SELECT 1');
       return true;
     } on Exception catch (e) {
-      print('MySQL ping failed: $e');
+      _talker.error('MySQL ping failed: $e');
       return false;
     }
   }

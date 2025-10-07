@@ -191,7 +191,6 @@ linter:
 analyzer:
   errors:
     always_specify_types: ignore
-    avoid_print: ignore
     invalid_annotation_target: ignore
     todo: ignore # to remove this param if warnings are needed
   exclude: [build/**, lib/**.freezed.dart, lib/**.g.dart, lib/generated/**, lib/firebase_options.dart]

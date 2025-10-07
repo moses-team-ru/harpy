@@ -2,6 +2,7 @@
 
 import 'package:harpy/harpy.dart';
 import 'package:shelf/shelf.dart' as shelf;
+import 'package:talker/talker.dart';
 
 /// Router class for handling HTTP routes
 ///
@@ -9,6 +10,9 @@ import 'package:shelf/shelf.dart' as shelf;
 class Router {
   final List<Route> _routes = <Route>[];
   final List<shelf.Middleware> _middlewares = <shelf.Middleware>[];
+
+  /// Talker instance for logging
+  final Talker _talker = Talker();
 
   /// Add middleware to the router
   void use(shelf.Middleware middleware) => _middlewares.add(middleware);
@@ -115,20 +119,21 @@ class Router {
               }
               return res.empty();
             } on FormatException catch (error) {
-              print('Format error in route handler: $error');
+              _talker.error('Format error in route handler: $error');
               return res.badRequest(<String, String>{
                 'error': 'Bad Request',
                 'message': error.message,
               });
             } on ArgumentError catch (error) {
-              print('Argument error in route handler: $error');
+              _talker.error('Argument error in route handler: $error');
               return res.badRequest(<String, dynamic>{
                 'error': 'Bad Request',
                 'message': error.message,
               });
             } on Exception catch (error, stackTrace) {
-              print('Error in route handler: $error');
-              print('Stack trace: $stackTrace');
+              _talker
+                ..error('Error in route handler: $error')
+                ..error('Stack trace: $stackTrace');
 
               return res.internalServerError(<String, String>{
                 'error': 'Internal server error',
@@ -175,9 +180,9 @@ class Router {
 
   /// Print all registered routes (for debugging)
   void printRoutes() {
-    print('Registered routes:');
+    _talker.info('Registered routes:');
     for (final Route route in _routes) {
-      print('  ${route.method.padRight(7)} ${route.pattern}');
+      _talker.verbose('  ${route.method.padRight(7)} ${route.pattern}');
     }
   }
 }

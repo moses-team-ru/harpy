@@ -1,8 +1,10 @@
 import 'dart:convert';
 
 import 'package:collection/collection.dart';
+import 'package:crypto/crypto.dart';
 import 'package:harpy/src/middleware/middleware.dart';
 import 'package:shelf/shelf.dart' as shelf;
+import 'package:talker/talker.dart';
 
 /// Authentication middleware
 ///
@@ -12,7 +14,7 @@ class AuthMiddleware implements Middleware {
   /// [jwtSecret] is the secret key used to validate JWT tokens.
   /// [excludePaths] is a list of paths to exclude from authentication.
   /// [customValidator] is an optional function to perform custom token validation.
-  const AuthMiddleware({
+  AuthMiddleware({
     this.jwtSecret,
     this.excludePaths = const [],
     this.customValidator,
@@ -26,6 +28,9 @@ class AuthMiddleware implements Middleware {
 
   /// Custom token validation function
   final Function(String token)? customValidator;
+
+  /// Talker instance for logging
+  final Talker _talker = Talker();
 
   @override
   shelf.Middleware call() => (shelf.Handler innerHandler) =>
@@ -92,7 +97,7 @@ class AuthMiddleware implements Middleware {
         await customValidator!(token);
         return true;
       } on Exception catch (e) {
-        print('Custom token validation failed: $e');
+        _talker.error('Custom token validation failed: $e');
         return false;
       }
     }
@@ -167,17 +172,17 @@ class AuthMiddleware implements Middleware {
 
       return true;
     } on Exception catch (e) {
-      print('JWT validation failed: $e');
+      _talker.error('JWT validation failed: $e');
       return false;
     }
   }
 
   String _generateSignature(String data, String secret) {
-    // В production следует использовать криптографическую библиотеку
-    // Здесь упрощенная реализация для демонстрации
-    final bytes = utf8.encode(data + secret);
-    final hash = bytes.fold<int>(0, (prev, byte) => prev ^ byte);
-    return base64UrlEncode(utf8.encode(hash.toString()));
+    // Proper HMAC-SHA256 signature for JWT
+    final hmac = Hmac(sha256, utf8.encode(secret));
+    final digest = hmac.convert(utf8.encode(data));
+    // JWT base64url encoding without padding
+    return base64Url.encode(digest.bytes).replaceAll('=', '');
   }
 
   Future<shelf.Response> _handleBasicAuth(

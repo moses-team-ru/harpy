@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:shelf/shelf.dart' as shelf;
 import 'package:shelf/shelf_io.dart' as shelf_io;
+import 'package:talker/talker.dart';
 
 /// HTTP Server wrapper for Harpy framework
 ///
@@ -19,6 +20,9 @@ class HarpyServer {
     this.shared = false,
   });
   HttpServer? _server;
+
+  /// Talker instance for logging
+  final Talker _talker = Talker();
 
   /// Server host
   final String host;
@@ -47,7 +51,7 @@ class HarpyServer {
     }
 
     final protocol = securityContext != null ? 'https' : 'http';
-    print('🚀 Harpy server listening on $protocol://$host:$port');
+    _talker.info('🚀 Harpy server listening on $protocol://$host:$port');
   }
 
   /// Stop the server
@@ -55,7 +59,7 @@ class HarpyServer {
     if (_server != null) {
       await _server!.close(force: force);
       _server = null;
-      print('🛑 Harpy server stopped');
+      _talker.info('🛑 Harpy server stopped');
     }
   }
 

@@ -5,6 +5,7 @@ import 'dart:async';
 import 'package:collection/collection.dart';
 import 'package:harpy/src/database/database_connection.dart';
 import 'package:postgres/postgres.dart' as pg;
+import 'package:talker/talker.dart';
 
 /// PostgreSQL database connection implementation using postgres package
 class PostgreSQLAdapter implements DatabaseConnection {
@@ -41,6 +42,9 @@ class PostgreSQLAdapter implements DatabaseConnection {
 
   final pg.Connection _connection;
   bool _isConnected = true; // Already connected after creation
+
+  /// Talker instance for logging
+  final Talker _talker = Talker();
 
   @override
   bool get isConnected => _isConnected && _connection.isOpen;
@@ -117,7 +121,7 @@ class PostgreSQLAdapter implements DatabaseConnection {
       await _connection.execute('SELECT 1');
       return true;
     } on Exception catch (e) {
-      print('PostgreSQL ping failed: $e');
+      _talker.error('PostgreSQL ping failed: $e');
       return false;
     }
   }

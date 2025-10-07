@@ -4,6 +4,7 @@ import 'dart:async';
 
 import 'package:collection/collection.dart';
 import 'package:harpy/src/database/database_connection.dart';
+import 'package:talker/talker.dart';
 
 /// Redis database connection implementation (simplified stub)
 ///
@@ -25,6 +26,9 @@ class RedisAdapter implements DatabaseConnection {
   final Map<String, dynamic> config;
 
   bool _isConnected = true;
+
+  /// Talker instance for logging
+  final Talker _talker = Talker();
 
   @override
   bool get isConnected => _isConnected;
@@ -94,7 +98,7 @@ class RedisAdapter implements DatabaseConnection {
       // In a real implementation, you would send PING command
       return true;
     } on Exception catch (e) {
-      print('Redis ping failed: $e');
+      _talker.error('Redis ping failed: $e');
       return false;
     }
   }

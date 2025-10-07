@@ -6,6 +6,7 @@ import 'dart:io';
 import 'package:collection/collection.dart';
 import 'package:harpy/src/database/database_connection.dart';
 import 'package:sqlite3/sqlite3.dart';
+import 'package:talker/talker.dart';
 
 /// SQLite database connection implementation using sqlite3 package
 class SqliteAdapter implements DatabaseConnection {
@@ -40,6 +41,9 @@ class SqliteAdapter implements DatabaseConnection {
 
   @override
   bool get isConnected => _isConnected;
+
+  /// Talker instance for logging
+  final Talker _talker = Talker();
 
   @override
   Future<void> connect() async {
@@ -115,7 +119,7 @@ class SqliteAdapter implements DatabaseConnection {
       _database.select('SELECT 1');
       return true;
     } on Exception catch (e) {
-      print('SQLite ping failed: $e');
+      _talker.error('SQLite ping failed: $e');
       return false;
     }
   }

@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:harpy/src/middleware/middleware.dart';
 import 'package:shelf/shelf.dart' as shelf;
+import 'package:talker/talker.dart';
 
 /// Request logging middleware
 ///
@@ -89,7 +90,7 @@ class LoggingMiddleware implements Middleware {
     if (logger != null) {
       logger!(message);
     } else {
-      print(message);
+      Talker().debug(message);
     }
   }
 
