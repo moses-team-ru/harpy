@@ -5,6 +5,91 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.2] - 2025-10-07
+
+### Changed
+- **Scheduler → Middleware Refactoring**: Converted Scheduler system to Middleware architecture
+  - `Scheduler` class moved to `SchedulerMiddleware` in `lib/src/middleware/`
+  - Integrated task scheduling into the middleware pipeline
+  - Improved lifecycle management with automatic startup and shutdown
+  - Better integration with Harpy application lifecycle
+  - Graceful shutdown of all tasks when server stops
+
+### Added
+- **Scheduler Middleware Documentation**: Complete guide for task scheduling
+  - Comprehensive documentation in `doc/scheduler.md`
+  - Examples for periodic, scheduled, and instant tasks
+  - Best practices and patterns
+  - Integration examples with database operations
+- **Enhanced CLI Structure**: Clear separation between global and project CLIs
+  - Global CLI (`bin/harpy.dart`) - Framework-level commands (create, version, help)
+  - Project CLI (`bin/<project>.dart`) - Project-specific commands (serve, migrate, task)
+  - New `lib/src/cli/` directory for CLI generation logic
+  - `create_project_cli.dart` - Separate file for project CLI template generation
+- **Task Management via CLI**: New command to add tasks to projects
+  - `dart run bin/<project>.dart task add <task_name>` - Generate task template
+  - Automatic task file creation in `lib/tasks/` directory
+  - Task templates for periodic, scheduled, and instant tasks
+  - Auto-registration hints in generated code
+  - `task list` command to display all tasks
+  - `task help` command for task management help
+
+### Technical Details
+- **Middleware Integration**: Scheduler now follows the standard middleware pattern
+  - Consistent API with other Harpy middlewares
+  - Easy to enable via `app.enableScheduler()`
+  - Automatic initialization and cleanup
+- **CLI Architecture**: Improved separation of concerns
+  - Framework CLI handles project scaffolding
+  - Project CLI handles application lifecycle and development tasks
+  - Reusable CLI generation components via `ProjectCliGenerator`
+  - Extensible command structure for custom commands
+- **Task Management**: Enhanced developer experience
+  - CLI-driven task creation with interactive type selection
+  - Template-based task generation
+  - Clear task registration patterns
+  - Built-in logging and error handling
+
+### Migration Guide
+For projects using the old Scheduler:
+
+**Before (v0.1.1):**
+```dart
+import 'package:harpy/harpy.dart';
+
+void main() async {
+  final scheduler = Scheduler();
+  scheduler.add(MyTask());
+  
+  final app = Harpy();
+  // Scheduler separate from app
+  await app.listen(port: 3000);
+}
+```
+
+**After (v0.1.2):**
+```dart
+import 'package:harpy/harpy.dart';
+
+void main() async {
+  final app = Harpy();
+  app.enableScheduler();
+  app.addTask(MyTask());
+  
+  await app.listen(port: 3000);
+  // Scheduler automatically stops with the app
+}
+```
+
+### Breaking Changes
+- `Scheduler` class deprecated (use `SchedulerMiddleware` through `app.enableScheduler()`)
+- Direct imports of `src/scheduler/scheduler.dart` should be updated to use middleware approach
+- Task lifecycle now managed by Harpy application instead of standalone Scheduler
+
+### Deprecated
+- `Scheduler` class (use `app.enableScheduler()` instead)
+- Direct Scheduler instantiation (tasks should be added via `app.addTask()`)
+
 ## [0.1.1+4] - 2025-10-03
 
 ### Changed

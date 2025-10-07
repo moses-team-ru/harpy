@@ -6,7 +6,9 @@ import 'package:harpy/src/middleware/auth_middleware.dart';
 import 'package:harpy/src/middleware/cors_middleware.dart';
 import 'package:harpy/src/middleware/logging_middleware.dart';
 import 'package:harpy/src/middleware/middleware.dart';
+import 'package:harpy/src/middleware/scheduler_middleware.dart';
 import 'package:harpy/src/routing/router.dart';
+import 'package:harpy/src/scheduler/task.dart';
 import 'package:harpy/src/server/harpy_server.dart';
 import 'package:shelf/shelf.dart' as shelf;
 import 'package:shelf/shelf_io.dart' as shelf_io;
@@ -28,6 +30,7 @@ class Harpy {
 
   HarpyServer? _server;
   Database? _database;
+  SchedulerMiddleware? _scheduler;
 
   /// Add global middleware to the application
   void use(shelf.Middleware middleware) => _globalMiddlewares.add(middleware);
@@ -67,6 +70,69 @@ class Harpy {
         excludePaths: excludePaths,
         customValidator: customValidator,
       ));
+
+  /// Enable scheduler middleware for task scheduling
+  ///
+  /// This middleware allows you to run background tasks at regular intervals,
+  /// at specific times, or immediately on startup.
+  ///
+  /// Example:
+  /// ```dart
+  /// app.enableScheduler();
+  /// app.addTask(MyPeriodicTask());
+  /// ```
+  void enableScheduler() {
+    _scheduler = SchedulerMiddleware();
+    use(_scheduler!.middleware());
+  }
+
+  /// Add a task to the scheduler
+  ///
+  /// The task must extend the [Task] class and implement the execute() method.
+  /// Tasks can be periodic, scheduled, or instant.
+  ///
+  /// Example:
+  /// ```dart
+  /// app.addTask(Task.periodic(
+  ///   id: 'cleanup',
+  ///   interval: Duration(hours: 1),
+  /// ));
+  /// ```
+  void addTask(Task task) {
+    if (_scheduler == null) {
+      throw StateError(
+        'Scheduler is not enabled. Call enableScheduler() first.',
+      );
+    }
+    _scheduler!.add(task);
+  }
+
+  /// Remove a task from the scheduler by its ID
+  ///
+  /// Example:
+  /// ```dart
+  /// app.removeTask('cleanup');
+  /// ```
+  void removeTask(String id) {
+    if (_scheduler == null) {
+      _talker.warning('Scheduler is not enabled, cannot remove task: $id');
+      return;
+    }
+    _scheduler!.remove(id);
+  }
+
+  /// Stop the scheduler and all running tasks
+  ///
+  /// This is automatically called when the server is closed.
+  void stopScheduler() {
+    _scheduler?.stop();
+  }
+
+  /// Get the number of active scheduled tasks
+  int get taskCount => _scheduler?.taskCount ?? 0;
+
+  /// Get a list of all scheduled task IDs
+  List<String> get taskIds => _scheduler?.taskIds ?? [];
 
   /// Connect to database and enable database middleware
   Future<void> connectToDatabase(Map<String, dynamic> dbConfig) async {
@@ -210,6 +276,9 @@ class Harpy {
 
   /// Stop the server
   Future<void> close({bool force = false}) async {
+    // Stop scheduler first
+    stopScheduler();
+
     if (_server != null) {
       await _server!.close(force: force);
       _server = null;

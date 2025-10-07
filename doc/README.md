@@ -27,6 +27,7 @@ Welcome to the comprehensive documentation for the Harpy Backend Framework - a m
 
 ### 🔧 Advanced Features
 - **[Authentication](authentication.md)** - JWT, Basic Auth, and custom authentication
+- **[Scheduler](scheduler.md)** - Task scheduling and background jobs
 - **[Testing](testing.md)** - Unit testing, integration testing, and mocking
 - **[Performance](performance.md)** - Optimization, caching, and monitoring
 - **[Deployment](deployment.md)** - Docker, cloud deployment, and production setup
@@ -102,6 +103,7 @@ Welcome to the comprehensive documentation for the Harpy Backend Framework - a m
 | **Authentication** | ✅ Production Ready | [middleware.md#auth](middleware.md#auth) | JWT and Basic Auth |
 | **Logging** | ✅ Production Ready | [middleware.md#logging](middleware.md#logging) | Request/response logging |
 | **Database** | ✅ Production Ready | [middleware.md#database](middleware.md#database) | Connection management |
+| **Scheduler** | ✅ Production Ready | [scheduler.md](scheduler.md) | Task scheduling and background jobs |
 
 ## 🚀 Quick Reference
 

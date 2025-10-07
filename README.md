@@ -20,6 +20,7 @@ A modern, fast, and lightweight backend framework for Dart that makes building R
 - 🔐 **Authentication** - JWT and Basic Auth middleware included
 - 🌐 **CORS Support** - Cross-origin resource sharing out of the box
 - 📊 **Request Logging** - Comprehensive request/response logging
+- ⏱️ **Task Scheduling** - Periodic, scheduled, and instant task execution
 
 ### 🗄️ Database & ORM Features
 - **Production-Ready SQLite** - Full implementation with transactions, migrations, and connection pooling
@@ -59,7 +60,7 @@ Add Harpy to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  harpy: ^0.1.1
+  harpy: ^0.1.2+1
 ```
 
 Or install globally for CLI tools:
@@ -531,6 +532,67 @@ class CreateUsersTable extends Migration {
 - ✅ **Database Migrations**: Version control for your database schema
 - ✅ **Connection Pooling**: Efficient database connection management
 - ✅ **Security**: Built-in SQL injection prevention
+
+### Task Scheduling
+
+Schedule background tasks with flexible timing:
+
+```dart
+import 'package:harpy/harpy.dart';
+
+class CleanupTask extends Task {
+  CleanupTask() : super.periodic(
+    id: 'cleanup',
+    interval: Duration(hours: 1),
+  );
+  
+  @override
+  Future<void> execute() async {
+    // Cleanup logic
+    print('Running cleanup...');
+  }
+  
+  @override
+  void finalize() {
+    print('Cleanup task finalized');
+  }
+}
+
+void main() async {
+  final app = Harpy();
+  app.enableScheduler();
+  
+  // Add periodic task
+  app.addTask(CleanupTask());
+  
+  // Add scheduled task (runs at specific time)
+  app.addTask(Task.scheduled(
+    id: 'daily-report',
+    scheduled: DateTime.utc(2025, 10, 8, 9, 0), // 09:00 UTC
+  ));
+  
+  // Add instant task (runs once immediately)
+  app.addTask(Task.instant(
+    id: 'startup-init',
+  ));
+  
+  await app.listen(port: 3000);
+}
+```
+
+**Task Types:**
+- **Periodic Tasks** - Run at regular intervals (e.g., every hour)
+- **Scheduled Tasks** - Run at specific times (e.g., daily at 9 AM)
+- **Instant Tasks** - Run once immediately on startup
+
+**CLI Integration:**
+Generate tasks using your project CLI:
+```bash
+dart run bin/myproject.dart task add cleanup
+dart run bin/myproject.dart task list
+```
+
+See the [Scheduler Documentation](doc/scheduler.md) for more details.
 
 ### Configuration
 

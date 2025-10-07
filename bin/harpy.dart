@@ -2,9 +2,11 @@
 
 import 'dart:io';
 
+import 'package:harpy/src/cli/project_cli_generator.dart';
 import 'package:talker/talker.dart';
 
 const String version = 'Harpy CLI v0.1.2+1';
+const String frameworkVersion = 'Harpy Framework v0.1.2';
 
 final Talker talker = Talker(
   settings: TalkerSettings(titles: {
@@ -40,22 +42,27 @@ void main(List<String> arguments) async {
 }
 
 void printUsage() => talker.verbose('''
-Harpy CLI - A tool for creating and managing Harpy applications
+Harpy Framework CLI - Global tool for project management
 
 Usage:
   harpy <command> [arguments]
 
 Available commands:
-  create <project_name>  Create a new Harpy project
-  version               Show version information
+  create <project_name>  Create a new Harpy project with local CLI
+  version               Show Harpy framework version
   help                  Show this help message
 
 Examples:
   harpy create my_api   Create a new project called 'my_api'
-  harpy version         Show version
+  harpy version         Show framework version
+
+Note: Each created project will have its own CLI tool in bin/<project_name>.dart
+      with commands like 'serve', 'migrate', 'task' for project-specific operations.
+
+For more information: https://github.com/moses-team-ru/harpy
 ''');
 
-void printVersion() => talker.info('Framework: Harpy v0.1.2+1');
+void printVersion() => talker.info(frameworkVersion);
 
 Future<void> createProject(List<String> args) async {
   if (args.isEmpty) {
@@ -90,7 +97,7 @@ environment:
   sdk: '>=3.0.0 <4.0.0'
 
 dependencies:
-  harpy: ^0.1.1
+  harpy: ^0.1.2+1
 
 dev_dependencies:
   lints: ^3.0.0
@@ -130,89 +137,12 @@ void main() async {
   await File('$projectName/lib/main.dart').create(recursive: true);
   await File('$projectName/lib/main.dart').writeAsString(mainContent);
 
-  // Create CLI utility for project management
-  final String cliContent = '''
-#!/usr/bin/env dart
-
-import 'dart:io';
-
-void main(List<String> args) async {
-  if (args.isEmpty) {
-    printHelp();
-    exit(0);
-  }
-
-  final command = args[0];
-
-  switch (command) {
-    case 'serve':
-      await serve();
-      break;
-    case 'migrate':
-      await migrate();
-      break;
-    case 'version':
-      printVersion();
-      break;
-    case 'help':
-    case '--help':
-    case '-h':
-      printHelp();
-      break;
-    default:
-      print('Unknown command: \\\$command');
-      printHelp();
-      exit(1);
-  }
-}
-
-Future<void> serve() async {
-  print('🚀 Starting $projectName server...');
-  print('');
-  
-  // Run the main application
-  final result = await Process.start(
-    'dart',
-    ['run', 'lib/main.dart'],
-    mode: ProcessStartMode.inheritStdio,
+  // Create CLI utility for project management using generator
+  final ProjectCliGenerator cliGenerator = ProjectCliGenerator(
+    projectName: projectName,
+    frameworkVersion: frameworkVersion,
   );
-  
-  await result.exitCode;
-}
-
-Future<void> migrate() async {
-  print('🔄 Running database migrations...');
-  
-  // TODO: Implement database migration logic
-  // This is a placeholder for migration functionality
-  print('Migration functionality not yet implemented.');
-  print('You can add your migration logic here.');
-}
-
-void printVersion() {
-  print('$projectName CLI v1.0.0');
-  print(${version.replaceFirst('CLI', 'Framework')});
-}
-
-void printHelp() {
-  print(\'\'\'
-$projectName - Project Management CLI
-
-Usage:
-  dart run bin/$projectName.dart <command>
-
-Available commands:
-  serve      Start the development server
-  migrate    Run database migrations
-  version    Show version information
-  help       Show this help message
-
-Examples:
-  dart run bin/$projectName.dart serve
-  dart run bin/$projectName.dart migrate
-\'\'\');
-}
-''';
+  final String cliContent = cliGenerator.generate();
 
   await File('$projectName/bin/$projectName.dart').create(recursive: true);
   await File('$projectName/bin/$projectName.dart').writeAsString(cliContent);
