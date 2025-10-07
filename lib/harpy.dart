@@ -27,9 +27,6 @@ export 'src/middleware/scheduler_middleware.dart';
 export 'src/routing/route.dart';
 // Routing
 export 'src/routing/router.dart';
-// Scheduler (deprecated - use SchedulerMiddleware via app.enableScheduler())
-@Deprecated('Use app.enableScheduler() and app.addTask() instead')
-export 'src/scheduler/scheduler.dart';
 // Task system
 export 'src/scheduler/task.dart';
 // Core server

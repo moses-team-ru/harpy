@@ -15,6 +15,7 @@ dependencies:
   path: ^1.9.1
   postgres: ^3.5.6
   mysql1: ^0.20.0
+  crypto: ^3.0.6
   mongo_dart: ^0.10.5
   redis: ^4.0.0
   talker: ^5.0.1
