@@ -1,6 +1,6 @@
 // ignore_for_file: avoid_print, avoid-dynamic, undefined_method, wrong_number_of_type_arguments, deprecated_member_use, undefined_class, undefined_setter, undefined_identifier, conflicting_method_and_field, override_on_non_overriding_member, avoid_classes_with_only_static_members, avoid_catches_without_on_clauses, unnecessary_type_check, avoid_unused_constructor_parameters, return_of_invalid_type, static_access_to_instance_member, undefined_named_parameter, undefined_getter, noop_primitive_operations, eol_at_end_of_file, unnecessary_future_return_type, avoid_classes_with_only_static_members, avoid_classes_with_only_static_members
 
-/// E-commerce API Example using Harpy Framework v0.1.24+1
+/// E-commerce API Example using Harpy Framework v0.1.3
 /// Simple demonstration of product and category management
 
 // import 'package:harpy/harpy.dart'; // Unused in this demo

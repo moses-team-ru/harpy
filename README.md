@@ -67,7 +67,7 @@ Add Harpy to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  harpy: ^0.1.24+1
+  harpy: ^0.1.3
 ```
 
 Or install globally for CLI tools:
@@ -482,7 +482,7 @@ print('Database: ${info['type']} v${info['version']}');
 
 #### Enhanced ORM System 🆕
 
-Harpy v0.1.24+1 introduces a completely redesigned ORM system with modern features:
+Harpy v0.1.3 introduces a completely redesigned ORM system with modern features:
 
 ```dart
 import 'package:harpy/harpy.dart';

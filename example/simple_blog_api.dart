@@ -1,4 +1,4 @@
-// Simple Blog API Example using Harpy Framework v0.1.24+1
+// Simple Blog API Example using Harpy Framework v0.1.3
 // This example demonstrates basic REST API endpoints without complex ORM features
 // ignore_for_file: file_names, avoid_print, cascade_invocations, avoid_catches_without_on_clauses, deprecated_member_use, undefined_method, avoid-nullable-interpolation
 
@@ -59,7 +59,7 @@ void main() async {
       (req, res) => res.json({
         'message': 'Simple Blog API',
         'version': '1.0.0',
-        'framework': 'Harpy v0.1.24+1',
+        'framework': 'Harpy v0.1.3',
       }),
     )
 
