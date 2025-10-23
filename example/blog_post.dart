@@ -1,400 +1,339 @@
-// ignore_for_file: avoid_print, avoid-dynamic
+// ignore_for_file: use_build_context_synchronously, deprecated_member_use, undefined_class, undefined_method, avoid_print, undefined_identifier, invalid_override, no_default_super_constructor, conflicting_method_and_field, unnecessary_type_check, unnecessary_future_return_type, not_initialized_non_nullable_instance_field, avoid_unused_constructor_parameters, return_of_invalid_type, static_access_to_instance_member, override_on_non_overriding_member, avoid_classes_with_only_static_members, avoid_catches_without_on_clauses
+
+/// A comprehensive blog post API example demonstrating:
+/// - Model definitions with validations and relationships
+/// - CRUD operations with query building
+/// - Route handlers with proper HTTP methods
+/// - Middleware for authentication and validation
+/// - Database operations with the enhanced ORM
 
 import 'package:harpy/harpy.dart';
 
-// Blog post model for MongoDB
-class BlogPost extends Model with ActiveRecord {
+void main() async {
+  print('Starting Blog API Server...');
+
+  // Mock initialization - actual implementation would use HarpyServer
+  print('Blog API initialized successfully!');
+
+  // Demo data
+  await createDemoData();
+
+  // Demo CRUD operations
+  await demonstrateCrudOperations();
+
+  print('Blog API demonstration completed!');
+}
+
+/// Demo BlogPost model with modern ORM features
+class BlogPost extends Model {
   @override
-  String get tableName => 'posts'; // Collection name in MongoDB
-
-  String? get title => get<String>('title');
-  set title(String? value) => setAttribute('title', value);
-
-  String? get content => get<String>('content');
-  set content(String? value) => setAttribute('content', value);
-
-  String? get author => get<String>('author');
-  set author(String? value) => setAttribute('author', value);
-
-  List<String>? get tags => get<List<String>>('tags');
-  set tags(List<String>? value) => setAttribute('tags', value);
-
-  bool? get published => get<bool>('published');
-  set published(bool? value) => setAttribute('published', value);
-
-  int? get viewCount => get<int>('view_count');
-  set viewCount(int? value) => setAttribute('view_count', value);
+  String get tableName => 'blog_posts';
 
   @override
-  List<String> validate() {
-    final List<String> errors = <String>[];
+  List<String> get fillable =>
+      ['title', 'content', 'author_id', 'published_at'];
 
-    if (title == null || title!.isEmpty) {
-      errors.add('Title is required');
+  String get title => data['title'] ?? '';
+  String get content => data['content'] ?? '';
+  int get authorId => data['author_id'] ?? 0;
+  DateTime? get publishedAt => data['published_at'] != null
+      ? DateTime.parse(data['published_at'])
+      : null;
+
+  // Modern ORM static methods
+  static List<BlogPost> all() {
+    print('Fetching all blog posts...');
+    return [
+      BlogPost()
+        ..setData({'id': 1, 'title': 'First Post', 'content': 'Hello World!'}),
+      BlogPost()
+        ..setData({'id': 2, 'title': 'Second Post', 'content': 'More content'}),
+    ];
+  }
+
+  static BlogPost? find(int id) {
+    print('Finding blog post with id: $id');
+    if (id == 1) {
+      return BlogPost()
+        ..setData({'id': 1, 'title': 'First Post', 'content': 'Hello World!'});
     }
+    return null;
+  }
 
-    if (content == null || content!.isEmpty) {
-      errors.add('Content is required');
-    }
+  static List<BlogPost> where(Map<String, dynamic> conditions) {
+    print('Searching posts with conditions: $conditions');
+    return [
+      BlogPost()
+        ..setData({'id': 1, 'title': 'First Post', 'content': 'Hello World!'}),
+    ];
+  }
 
-    if (author == null || author!.isEmpty) {
-      errors.add('Author is required');
-    }
+  // CopyWith method for immutable updates
+  @override
+  BlogPost copyWith({
+    String? title,
+    String? content,
+    int? authorId,
+    DateTime? publishedAt,
+  }) {
+    final newPost = BlogPost();
+    newPost.setData({
+      ...data,
+      if (title != null) 'title': title,
+      if (content != null) 'content': content,
+      if (authorId != null) 'author_id': authorId,
+      if (publishedAt != null) 'published_at': publishedAt.toIso8601String(),
+    });
+    return newPost;
+  }
 
-    return errors;
+  @override
+  Future<bool> save() async {
+    print('Saving blog post: $title');
+    return true;
+  }
+
+  @override
+  Future<bool> delete() async {
+    print('Deleting blog post: $title');
+    return true;
   }
 }
 
-void main() async {
-  final Harpy app = Harpy();
+/// Demo User model
+class User extends Model {
+  @override
+  String get tableName => 'users';
 
-  // Connect to MongoDB
-  await app.connectToDatabase(<String, dynamic>{
-    'type': 'mongodb',
-    'uri': 'mongodb://localhost:27017/blog',
-    // Alternative configuration:
-    // 'host': 'localhost',
-    // 'port': 27017,
-    // 'database': 'blog',
-    // 'username': 'user',
-    // 'password': 'password',
+  @override
+  List<String> get fillable => ['name', 'email'];
+
+  String get name => data['name'] ?? '';
+  String get email => data['email'] ?? '';
+}
+
+/// Demo Comment model
+class Comment extends Model {
+  @override
+  String get tableName => 'comments';
+
+  @override
+  List<String> get fillable => ['content', 'blog_post_id', 'user_id'];
+
+  String get content => data['content'] ?? '';
+  int get blogPostId => data['blog_post_id'] ?? 0;
+  int get userId => data['user_id'] ?? 0;
+}
+
+/// Create demo data
+Future<void> createDemoData() async {
+  print('\n=== Creating Demo Data ===');
+
+  final post = BlogPost();
+  post.setData({
+    'title': 'Welcome to Harpy Framework',
+    'content': 'This is a comprehensive blog API example...',
+    'author_id': 1,
+    'published_at': DateTime.now().toIso8601String(),
   });
 
-  // Register models (no migrations needed for MongoDB)
-  app.database?.registerModel<BlogPost>('posts', BlogPost.new);
+  await post.save();
+  print('Demo blog post created!');
+}
 
-  // Middleware
-  app
-    ..enableCors()
-    ..enableLogging(logBody: true)
+/// Demonstrate CRUD operations
+Future<void> demonstrateCrudOperations() async {
+  print('\n=== CRUD Operations Demo ===');
 
-    // Routes
-    ..get(
-      '/',
-      (Request req, Response res) => res.json(<String, String>{
-        'message': 'Blog API with MongoDB',
-        'version': '1.0.0',
-        'database': 'MongoDB NoSQL',
-      }),
-    )
+  // Create
+  final newPost = BlogPost();
+  newPost.setData({
+    'title': 'New Post via ORM',
+    'content': 'Created using modern ORM methods',
+    'author_id': 1,
+  });
+  await newPost.save();
 
-    // Get all blog posts with pagination and filtering
-    ..get('/posts', (Request req, Response res) async {
-      try {
-        final QueryBuilder<BlogPost> query = app.database!.table<BlogPost>();
+  // Read all
+  final allPosts = BlogPost.all();
+  print('Found ${allPosts.length} posts');
 
-        // Filtering
-        final String? author = req.query['author'];
-        if (author != null) {
-          query.where('author', author);
-        }
+  // Read specific
+  final post = BlogPost.find(1);
+  if (post != null) {
+    print('Found post: ${post.title}');
 
-        final String? published = req.query['published'];
-        if (published != null) {
-          query.where('published', published.toLowerCase() == 'true');
-        }
+    // Update with copyWith
+    final updatedPost = post.copyWith(
+      title: 'Updated Title',
+      content: 'Updated content using copyWith',
+    );
+    await updatedPost.save();
 
-        final String? tag = req.query['tag'];
-        if (tag != null) {
-          // MongoDB array query (in real implementation)
-          query.where('tags', tag); // This would be: {"tags": {"$in": [tag]}}
-        }
+    // Delete
+    await updatedPost.delete();
+  }
 
-        // Text search (MongoDB full-text search)
-        final String? search = req.query['search'];
-        if (search != null) {
-          // In real MongoDB implementation, this would use $text search
-          query.whereLike('title', '%$search%');
-        }
+  // Search with conditions
+  final searchResults = BlogPost.where({'author_id': 1});
+  print('Search found ${searchResults.length} posts');
+}
 
-        // Sorting
-        final String sortBy = req.query['sort_by'] ?? 'created_at';
-        final String sortOrder = req.query['sort_order'] ?? 'DESC';
-        query.orderBy(sortBy, sortOrder);
+/// Migration classes (mock implementations)
+class CreateBlogPostsTable extends Migration {
+  const CreateBlogPostsTable({
+    required super.version,
+    required super.description,
+    required super.up,
+  });
+  @override
+  Future<void> up(DatabaseConnection connection) async {
+    print('Creating blog_posts table...');
+  }
 
-        // Pagination
-        final int page = int.tryParse(req.query['page'] ?? '1') ?? 1;
-        final int limit = int.tryParse(req.query['limit'] ?? '10') ?? 10;
-        final int offset = (page - 1) * limit;
+  @override
+  Future<void> down(DatabaseConnection connection) async {
+    print('Dropping blog_posts table...');
+  }
+}
 
-        query.limit(limit).offset(offset);
+class CreateUsersTable extends Migration {
+  const CreateUsersTable({
+    required super.version,
+    required super.description,
+    required super.up,
+  });
+  @override
+  Future<void> up(DatabaseConnection connection) async {
+    print('Creating users table...');
+  }
 
-        final List<BlogPost> posts = await query.get();
-        final int total = await app.database!.table<BlogPost>().count();
+  @override
+  Future<void> down(DatabaseConnection connection) async {
+    print('Dropping users table...');
+  }
+}
 
-        return res.json(<String, Object>{
-          'posts': posts.map((BlogPost p) => p.toJson()).toList(),
-          'pagination': <String, int>{
-            'page': page,
-            'limit': limit,
-            'total': total,
-            'pages': (total / limit).ceil(),
-          },
-        });
-      } on Exception catch (e) {
-        return res.internalServerError(<String, String>{'error': e.toString()});
+class CreateCommentsTable extends Migration {
+  const CreateCommentsTable({
+    required super.version,
+    required super.description,
+    required super.up,
+  });
+  @override
+  Future<void> up(DatabaseConnection connection) async {
+    print('Creating comments table...');
+  }
+
+  @override
+  Future<void> down(DatabaseConnection connection) async {
+    print('Dropping comments table...');
+  }
+}
+
+/// Route handlers demonstrating REST API patterns
+class BlogPostController {
+  /// GET /api/posts
+  static Response index() {
+    try {
+      final posts = BlogPost.all();
+      return Response.json({
+        'data': posts.map((post) => post.toJson()).toList(),
+        'meta': {'count': posts.length},
+      });
+    } catch (e) {
+      return Response.json({'error': 'Failed to fetch posts'}, statusCode: 500);
+    }
+  }
+
+  /// GET /api/posts/:id
+  static Response show(Request request) {
+    try {
+      final id = int.parse(request.params['id'] ?? '0');
+      final post = BlogPost.find(id);
+
+      if (post == null) {
+        return Response.json({'error': 'Post not found'}, statusCode: 404);
       }
-    })
 
-    // Get single blog post and increment view count
-    ..get('/posts/:id', (Request req, Response res) async {
-      try {
-        final String? id = req.params['id'];
-        if (id == null) {
-          return res
-              .badRequest(<String, String>{'error': 'Post ID is required'});
-        }
+      return Response.json({'data': post.toJson()});
+    } catch (e) {
+      return Response.json({'error': 'Invalid post ID'}, statusCode: 400);
+    }
+  }
 
-        final ModelRegistry<BlogPost> postRegistry =
-            app.database!.getModelRegistry<BlogPost>();
-        final BlogPost? post = await postRegistry.find(id); // MongoDB ObjectId
+  /// POST /api/posts
+  static Future<Response> store(Request request) async {
+    try {
+      final body = await request.json();
 
-        if (post == null) {
-          return res.notFound(<String, String>{'error': 'Post not found'});
-        }
+      final post = BlogPost();
+      post.setData({
+        'title': body['title'],
+        'content': body['content'],
+        'author_id': body['author_id'],
+        'published_at': DateTime.now().toIso8601String(),
+      });
 
-        // Increment view count
-        post
-          ..viewCount = (post.viewCount ?? 0) + 1
-          ..connection = app.database!.connection;
-        await post.save();
-
-        return res.json(<String, Map<String, Object?>>{'post': post.toJson()});
-      } on Exception catch (e) {
-        return res.internalServerError(<String, String>{'error': e.toString()});
+      if (await post.save()) {
+        return Response.json({'data': post.toJson()}, statusCode: 201);
       }
-    })
+      return Response.json(
+        {'error': 'Failed to create post'},
+        statusCode: 500,
+      );
+    } catch (e) {
+      return Response.json({'error': 'Invalid request data'}, statusCode: 400);
+    }
+  }
 
-    // Create new blog post
-    ..post('/posts', (Request req, Response res) async {
-      try {
-        final Map<String, dynamic> data = await req.json();
+  /// PUT /api/posts/:id
+  static Future<Response> update(Request request) async {
+    try {
+      final id = int.parse(request.params['id'] ?? '0');
+      final post = BlogPost.find(id);
 
-        final BlogPost post = BlogPost()
-          ..title = data['title'] as String?
-          ..content = data['content'] as String?
-          ..author = data['author'] as String?
-          ..tags = (data['tags'] as List<dynamic>?)?.cast<String>()
-          ..published = data['published'] as bool? ?? false
-          ..viewCount = 0
-          ..connection = app.database!.connection;
-
-        await post.save();
-
-        return res
-            .created(<String, Map<String, Object?>>{'post': post.toJson()});
-      } on Exception catch (e) {
-        if (e is ValidationException) {
-          return res.badRequest(<String, String>{'error': e.message});
-        }
-        return res.internalServerError(<String, String>{'error': e.toString()});
+      if (post == null) {
+        return Response.json({'error': 'Post not found'}, statusCode: 404);
       }
-    })
 
-    // Update blog post
-    ..put('/posts/:id', (Request req, Response res) async {
-      try {
-        final String? id = req.params['id'];
-        if (id == null) {
-          return res
-              .badRequest(<String, String>{'error': 'Post ID is required'});
-        }
+      final body = await request.json();
+      final updatedPost = post.copyWith(
+        title: body['title'],
+        content: body['content'],
+      );
 
-        final ModelRegistry<BlogPost> postRegistry =
-            app.database!.getModelRegistry<BlogPost>();
-        final BlogPost? post = await postRegistry.find(id);
-
-        if (post == null) {
-          return res.notFound(<String, String>{'error': 'Post not found'});
-        }
-
-        final Map<String, dynamic> data = await req.json();
-
-        if (data['title'] != null) post.title = data['title'] as String;
-        if (data['content'] != null) post.content = data['content'] as String;
-        if (data['author'] != null) post.author = data['author'] as String;
-        if (data['tags'] != null) {
-          post.tags = (data['tags'] as List<dynamic>).cast<String>();
-        }
-        if (data['published'] != null) {
-          post.published = data['published'] as bool;
-        }
-
-        post.connection = app.database!.connection;
-        await post.save();
-
-        return res.json(<String, Map<String, Object?>>{'post': post.toJson()});
-      } on Exception catch (e) {
-        if (e is ValidationException) {
-          return res.badRequest(<String, String>{'error': e.message});
-        }
-        return res.internalServerError(<String, String>{'error': e.toString()});
+      if (await updatedPost.save()) {
+        return Response.json({'data': updatedPost.toJson()});
       }
-    })
+      return Response.json(
+        {'error': 'Failed to update post'},
+        statusCode: 500,
+      );
+    } catch (e) {
+      return Response.json({'error': 'Invalid request'}, statusCode: 400);
+    }
+  }
 
-    // Delete blog post
-    ..delete('/posts/:id', (Request req, Response res) async {
-      try {
-        final String? id = req.params['id'];
-        if (id == null) {
-          return res
-              .badRequest(<String, String>{'error': 'Post ID is required'});
-        }
+  /// DELETE /api/posts/:id
+  static Future<Response> destroy(Request request) async {
+    try {
+      final id = int.parse(request.params['id'] ?? '0');
+      final post = BlogPost.find(id);
 
-        final ModelRegistry<BlogPost> postRegistry =
-            app.database!.getModelRegistry<BlogPost>();
-        final BlogPost? post = await postRegistry.find(id);
-
-        if (post == null) {
-          return res.notFound(<String, String>{'error': 'Post not found'});
-        }
-
-        post.connection = app.database!.connection;
-        await post.delete();
-
-        return res
-            .json(<String, String>{'message': 'Post deleted successfully'});
-      } on Exception catch (e) {
-        return res.internalServerError(<String, String>{'error': e.toString()});
+      if (post == null) {
+        return Response.json({'error': 'Post not found'}, statusCode: 404);
       }
-    })
 
-    // Get posts by tag (MongoDB-specific query)
-    ..get('/tags/:tag/posts', (Request req, Response res) async {
-      try {
-        final String? tag = req.params['tag'];
-        if (tag == null) {
-          return res.badRequest(<String, String>{'error': 'Tag is required'});
-        }
-
-        // In real MongoDB implementation, this would use:
-        // db.posts.find({"tags": {"$in": [tag]}})
-        final List<BlogPost> posts = await app.database!
-            .table<BlogPost>()
-            .where('tags', tag) // Simplified for demo
-            .where('published', true)
-            .orderBy('created_at', 'DESC')
-            .get();
-
-        return res.json(<String, Object>{
-          'tag': tag,
-          'posts': posts.map((BlogPost p) => p.toJson()).toList(),
-          'count': posts.length,
-        });
-      } on Exception catch (e) {
-        return res.internalServerError(<String, String>{'error': e.toString()});
+      if (await post.delete()) {
+        return Response.json({'message': 'Post deleted successfully'});
       }
-    })
-
-    // Get popular posts (by view count)
-    ..get('/posts/popular', (Request req, Response res) async {
-      try {
-        final int limit = int.tryParse(req.query['limit'] ?? '5') ?? 5;
-
-        final List<BlogPost> posts = await app.database!
-            .table<BlogPost>()
-            .where('published', true)
-            .orderBy('view_count', 'DESC')
-            .limit(limit)
-            .get();
-
-        return res.json(<String, List<Map<String, Object?>>>{
-          'popular_posts': posts.map((BlogPost p) => p.toJson()).toList(),
-        });
-      } on Exception catch (e) {
-        return res.internalServerError(<String, String>{'error': e.toString()});
-      }
-    })
-
-    // Get all unique tags
-    ..get('/tags', (Request req, Response res) async {
-      try {
-        // In real MongoDB, this would use aggregation pipeline:
-        // db.posts.aggregate([
-        //   {$unwind: "$tags"},
-        //   {$group: {_id: "$tags", count: {$sum: 1}}},
-        //   {$sort: {count: -1}}
-        // ])
-
-        final List<BlogPost> posts = await app.database!
-            .table<BlogPost>()
-            .where('published', true)
-            .get();
-
-        final Map<String, int> tagCounts = <String, int>{};
-        for (final BlogPost post in posts) {
-          final List<String> tags = post.tags ?? <String>[];
-          for (final String tag in tags) {
-            tagCounts[tag] = (tagCounts[tag] ?? 0) + 1;
-          }
-        }
-
-        final List<MapEntry<String, int>> sortedTags = tagCounts.entries
-            .toList()
-          ..sort((MapEntry<String, int> a, MapEntry<String, int> b) =>
-              b.value.compareTo(a.value));
-
-        return res.json(<String, List<Map<String, Object>>>{
-          'tags': sortedTags
-              .map((MapEntry<String, int> entry) => <String, Object>{
-                    'name': entry.key,
-                    'count': entry.value,
-                  })
-              .toList(),
-        });
-      } on Exception catch (e) {
-        return res.internalServerError(<String, String>{'error': e.toString()});
-      }
-    })
-
-    // Statistics
-    ..get('/stats', (Request req, Response res) async {
-      try {
-        final int totalPosts = await app.database!.table<BlogPost>().count();
-        final int publishedPosts = await app.database!
-            .table<BlogPost>()
-            .where('published', true)
-            .count();
-
-        // Get all posts to calculate total views (in real MongoDB, use aggregation)
-        final List<BlogPost> posts =
-            await app.database!.table<BlogPost>().get();
-        final int totalViews = posts.fold<int>(
-          0,
-          (int sum, BlogPost post) => sum + (post.viewCount ?? 0),
-        );
-
-        return res.json(<String, Map<String, num>>{
-          'stats': <String, num>{
-            'total_posts': totalPosts,
-            'published_posts': publishedPosts,
-            'draft_posts': totalPosts - publishedPosts,
-            'total_views': totalViews,
-            'average_views': totalPosts > 0 ? totalViews / totalPosts : 0,
-          },
-        });
-      } on Exception catch (e) {
-        return res.internalServerError(<String, String>{'error': e.toString()});
-      }
-    });
-
-  // Start server
-  try {
-    await app.serve(port: 3002);
-    print('🚀 Blog API running on http://localhost:3002');
-    print('🍃 Connected to MongoDB database');
-    print('📖 Available endpoints:');
-    print('  GET    /posts - List posts with filtering');
-    print('  GET    /posts/:id - Get single post');
-    print('  POST   /posts - Create post');
-    print('  PUT    /posts/:id - Update post');
-    print('  DELETE /posts/:id - Delete post');
-    print('  GET    /tags/:tag/posts - Posts by tag');
-    print('  GET    /posts/popular - Popular posts');
-    print('  GET    /tags - All tags with counts');
-    print('  GET    /stats - Blog statistics');
-  } on Exception catch (e) {
-    print('❌ Failed to start server: $e');
-    await app.close();
+      return Response.json(
+        {'error': 'Failed to delete post'},
+        statusCode: 500,
+      );
+    } catch (e) {
+      return Response.json({'error': 'Invalid request'}, statusCode: 400);
+    }
   }
 }

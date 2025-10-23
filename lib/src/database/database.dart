@@ -2,8 +2,6 @@ import 'dart:async';
 
 import 'package:harpy/src/database/adapters/sqlite_adapter.dart' as sqlite;
 import 'package:harpy/src/database/database_connection.dart';
-import 'package:harpy/src/database/model.dart';
-import 'package:harpy/src/database/query_builder.dart';
 import 'package:talker/talker.dart';
 
 /// Main database manager class
@@ -21,9 +19,6 @@ class Database {
   /// Talker instance for logging
   final Talker _talker = Talker();
 
-  /// Registered model registries
-  final Map<String, ModelRegistry> _modelRegistries = {};
-
   /// Create database instance
   static Future<Database> connect(Map<String, dynamic> config) async {
     final adapter = _getAdapter(config['type'] as String);
@@ -31,35 +26,6 @@ class Database {
     await connection.connect();
 
     return Database._(connection: connection, config: config);
-  }
-
-  /// Register a model with the database
-  void registerModel<T extends Model>(
-    String tableName,
-    T Function() constructor,
-  ) {
-    _modelRegistries[T.toString()] = ModelRegistry<T>(
-      tableName: tableName,
-      modelConstructor: constructor,
-      connection: connection,
-    );
-  }
-
-  /// Get model registry
-  ModelRegistry<T> getModelRegistry<T extends Model>() {
-    final registry = _modelRegistries[T.toString()];
-    if (registry == null) {
-      throw StateError(
-        'Model $T is not registered. Call registerModel<$T>() first.',
-      );
-    }
-    return registry as ModelRegistry<T>;
-  }
-
-  /// Create a query builder for a model
-  QueryBuilder<T> table<T extends Model>() {
-    final registry = getModelRegistry<T>();
-    return QueryBuilder<T>(T, connection)..table(registry.tableName);
   }
 
   /// Execute raw query
@@ -124,25 +90,6 @@ class Database {
         throw ArgumentError('Unsupported database type: $type');
     }
   }
-}
-
-/// Model registry for managing model metadata
-class ModelRegistry<T extends Model> with Repository<T> {
-  /// Create model registry
-  ModelRegistry({
-    required this.tableName,
-    required this.modelConstructor,
-    required this.connection,
-  });
-
-  @override
-  final String tableName;
-
-  @override
-  final T Function() modelConstructor;
-
-  @override
-  final DatabaseConnection connection;
 }
 
 /// SQLite database adapter implementation

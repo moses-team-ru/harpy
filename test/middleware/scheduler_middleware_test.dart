@@ -1,3 +1,6 @@
+// ignore_for_file: file_names
+import 'dart:async';
+
 import 'package:harpy/harpy.dart';
 import 'package:test/test.dart';
 
@@ -10,16 +13,23 @@ class SchedulerMiddlewareTest extends Task {
 
   SchedulerMiddlewareTest.instant() : super.instant(id: 'test-instant');
   int executionCount = 0;
+  final Completer<void> _executionCompleter = Completer<void>();
 
   @override
   Future<void> execute() async {
     executionCount++;
+    if (!_executionCompleter.isCompleted) {
+      _executionCompleter.complete();
+    }
   }
 
   @override
   void finalize() {
-    executionCount = 0;
+    // Keep execution count for testing - do nothing
+    return;
   }
+
+  Future<void> waitForExecution() => _executionCompleter.future;
 }
 
 void main() {
@@ -42,10 +52,12 @@ void main() {
       final Harpy app = Harpy()..enableScheduler();
 
       final SchedulerMiddlewareTest task = SchedulerMiddlewareTest.instant();
+
+      // Start task and wait for completion using our completer
       app.addTask(task);
 
-      // Give it time to execute
-      await Future<void>.delayed(const Duration(milliseconds: 100));
+      // Wait for the task to actually execute
+      await task.waitForExecution();
 
       expect(task.executionCount, equals(1));
     });
@@ -56,12 +68,14 @@ void main() {
       final SchedulerMiddlewareTest task = SchedulerMiddlewareTest.periodic();
       app.addTask(task);
 
-      await Future<void>.delayed(const Duration(milliseconds: 250));
+      // Wait for some executions
+      await Future<void>.delayed(const Duration(milliseconds: 300));
       final int countBefore = task.executionCount;
 
       app.removeTask('test-periodic');
 
-      await Future<void>.delayed(const Duration(milliseconds: 250));
+      // Wait and verify no more executions occurred
+      await Future<void>.delayed(const Duration(milliseconds: 300));
       final int countAfter = task.executionCount;
 
       expect(countAfter, equals(countBefore));
@@ -73,12 +87,12 @@ void main() {
       final SchedulerMiddlewareTest task1 = SchedulerMiddlewareTest.periodic();
       app.addTask(task1);
 
-      await Future<void>.delayed(const Duration(milliseconds: 150));
+      await Future<void>.delayed(const Duration(milliseconds: 200));
 
       app.stopScheduler();
       final int countBefore = task1.executionCount;
 
-      await Future<void>.delayed(const Duration(milliseconds: 150));
+      await Future<void>.delayed(const Duration(milliseconds: 200));
       final int countAfter = task1.executionCount;
 
       expect(countAfter, equals(countBefore));

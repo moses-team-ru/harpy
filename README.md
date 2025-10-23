@@ -28,6 +28,13 @@ A modern, fast, and lightweight backend framework for Dart that makes building R
 - **MySQL Connector** - Native MySQL database integration
 - **MongoDB Integration** - NoSQL document database support
 - **Redis Cache Layer** - Key-value store support (stub implementation)
+- **Enhanced ORM System** 🆕 - Modern ORM with comprehensive features
+  - **ModelRegistry** - Centralized model constructor registration and automatic instantiation
+  - **copyWith() Method** - Flexible model copying with attribute changes
+  - **Composite Primary Keys** - Advanced primary key handling for complex schemas
+  - **Static ORM Methods** - Convenient static query methods (`where()`, `fetchOne()`, `fetchAll()`, etc.)
+  - **Relationship System** - Complete relationship support (BelongsTo, HasMany, BelongsToMany, HasOne)
+  - **Eager Loading** - Load relationships efficiently to prevent N+1 queries
 - **Active Record Pattern** - Easy model-based database operations
 - **Query Builder** - Type-safe, fluent query construction
 - **Database Migrations** - Version control for your database schema
@@ -60,7 +67,7 @@ Add Harpy to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  harpy: ^0.1.2+1
+  harpy: ^0.1.24+1
 ```
 
 Or install globally for CLI tools:
@@ -473,33 +480,191 @@ final info = await database.getInfo();
 print('Database: ${info['type']} v${info['version']}');
 ```
 
-#### Models & Migrations
+#### Enhanced ORM System 🆕
+
+Harpy v0.1.24+1 introduces a completely redesigned ORM system with modern features:
 
 ```dart
-// Define models
+import 'package:harpy/harpy.dart';
+
+// 1. Register models with ModelRegistry
+void registerModels() {
+  ModelRegistry.register<User>(() => User());
+  ModelRegistry.register<Post>(() => Post());
+  ModelRegistry.register<Category>(() => Category());
+}
+
+// 2. Define enhanced models with new features
 class User extends Model with ActiveRecord {
   @override
   String get tableName => 'users';
+  
+  // Primary key handling (single or composite)
+  @override
+  List<String> get primaryKey => ['id'];
 
+  // Standard getters/setters
   String? get name => get<String>('name');
   set name(String? value) => setAttribute('name', value);
 
   String? get email => get<String>('email');
   set email(String? value) => setAttribute('email', value);
 
+  bool get isActive => get<bool>('active') ?? false;
+  set isActive(bool value) => setAttribute('active', value);
+
+  // 🆕 Enhanced copyWith method
+  User copyWith({String? name, String? email, bool? isActive}) {
+    return super.copyWith<User>(attributes: {
+      if (name != null) 'name': name,
+      if (email != null) 'email': email,
+      if (isActive != null) 'active': isActive,
+    });
+  }
+
+  // 🆕 Relationships
+  Future<List<Post>> get posts => hasMany<Post>('user_id');
+  Future<Profile?> get profile => hasOne<Profile>('user_id');
+  
+  // 🆕 Many-to-many relationships
+  Future<List<Category>> get categories => belongsToMany<Category>(
+    'user_categories', 'user_id', 'category_id');
+}
+
+class Post extends Model with ActiveRecord {
   @override
-  List<String> validate() {
-    final errors = <String>[];
-    if (name == null || name!.trim().isEmpty) {
-      errors.add('Name is required');
-    }
-    if (email == null || !email!.contains('@')) {
-      errors.add('Valid email is required');
-    }
-    return errors;
+  String get tableName => 'posts';
+
+  String? get title => get<String>('title');
+  set title(String? value) => setAttribute('title', value);
+
+  String? get content => get<String>('content');
+  set content(String? value) => setAttribute('content', value);
+
+  int? get userId => get<int>('user_id');
+  set userId(int? value) => setAttribute('user_id', value);
+
+  // Relationships
+  Future<User?> get author => belongsTo<User>('user_id');
+}
+
+// 3. 🆕 Static ORM Methods - Modern query interface
+void demonstrateStaticMethods() async {
+  // Initialize ModelRegistry
+  registerModels();
+
+  // Fetch all users
+  final users = await User.fetchAll<User>();
+  
+  // Fetch with conditions
+  final activeUsers = await User.where<User>('active', true);
+  
+  // Single record
+  final user = await User.fetchOne<User>(
+    where: 'email = ?', 
+    parameters: ['john@example.com']
+  );
+  
+  // Pagination
+  final recentUsers = await User.fetchAll<User>(
+    orderBy: 'created_at DESC',
+    limit: 10,
+    offset: 0,
+  );
+  
+  // Count records
+  final userCount = await User.count<User>();
+  final activeUserCount = await User.count<User>(where: 'active = ?', parameters: [true]);
+  
+  // Check existence
+  final emailExists = await User.exists<User>(
+    where: 'email = ?', 
+    parameters: ['test@example.com']
+  );
+  
+  // Find by attributes (new convenience method)
+  final usersByName = await User.findBy<User>({'name': 'John', 'active': true});
+  
+  // Bulk operations
+  await User.updateWhere<User>(
+    where: 'last_login < ?',
+    parameters: [DateTime.now().subtract(Duration(days: 30))],
+    attributes: {'active': false},
+  );
+  
+  await User.deleteWhere<User>(
+    where: 'active = ? AND created_at < ?',
+    parameters: [false, DateTime.now().subtract(Duration(days: 90))],
+  );
+}
+
+// 4. 🆕 Advanced relationship usage
+void demonstrateRelationships() async {
+  final user = await User.fetchOne<User>(where: 'id = ?', parameters: [1]);
+  
+  // Load relationships
+  final userPosts = await user?.posts;
+  final userProfile = await user?.profile;
+  final userCategories = await user?.categories;
+  
+  // Many-to-many operations
+  if (user != null) {
+    final relationship = user.belongsToManyRelation<Category>(
+      'user_categories', 'user_id', 'category_id');
+    
+    // Attach categories
+    await relationship.attach([1, 2, 3], pivotData: {'assigned_at': DateTime.now()});
+    
+    // Detach categories  
+    await relationship.detach([2]);
+    
+    // Sync categories (replaces all)
+    await relationship.sync([1, 3, 4]);
   }
 }
 
+// 5. 🆕 Enhanced model copying and comparison
+void demonstrateCopyWith() async {
+  final user = await User.fetchOne<User>(where: 'id = ?', parameters: [1]);
+  
+  if (user != null) {
+    // Create modified copy
+    final updatedUser = user.copyWith(
+      name: 'New Name',
+      isActive: false,
+    );
+    
+    // Original user unchanged
+    print('Original: ${user.name}');   // 'John Doe'
+    print('Updated: ${updatedUser.name}'); // 'New Name'
+    
+    // Save the updated copy
+    await updatedUser.save();
+    
+    // Equality comparison (uses primary key)
+    print('Same user: ${user == updatedUser}'); // true (same ID)
+  }
+}
+
+// 6. 🆕 Composite primary keys support
+class UserRole extends Model with ActiveRecord {
+  @override
+  String get tableName => 'user_roles';
+  
+  @override
+  List<String> get primaryKey => ['user_id', 'role_id']; // Composite primary key
+  
+  int? get userId => get<int>('user_id');
+  set userId(int? value) => setAttribute('user_id', value);
+  
+  int? get roleId => get<int>('role_id');
+  set roleId(int? value) => setAttribute('role_id', value);
+}
+```
+
+#### Models & Migrations
+
+```dart
 // Database migrations
 class CreateUsersTable extends Migration {
   @override
@@ -508,15 +673,57 @@ class CreateUsersTable extends Migration {
       table.id();
       table.string('name', nullable: false);
       table.string('email', nullable: false);
+      table.boolean('active', defaultValue: true);
       table.timestamps();
       table.unique(['email']);
       table.index(['name']);
+      table.index(['active']);
     });
   }
 
   @override
   Future<void> down() async {
     await dropTable('users');
+  }
+}
+
+class CreatePostsTable extends Migration {
+  @override
+  Future<void> up() async {
+    await createTable('posts', (table) {
+      table.id();
+      table.string('title', nullable: false);
+      table.text('content');
+      table.integer('user_id', nullable: false);
+      table.timestamps();
+      table.foreignKey('user_id', references: 'users', column: 'id');
+      table.index(['user_id']);
+    });
+  }
+
+  @override
+  Future<void> down() async {
+    await dropTable('posts');
+  }
+}
+
+// Many-to-many pivot table
+class CreateUserCategoriesTable extends Migration {
+  @override
+  Future<void> up() async {
+    await createTable('user_categories', (table) {
+      table.integer('user_id', nullable: false);
+      table.integer('category_id', nullable: false);
+      table.timestamp('assigned_at', defaultValue: 'CURRENT_TIMESTAMP');
+      table.primaryKey(['user_id', 'category_id']); // Composite primary key
+      table.foreignKey('user_id', references: 'users', column: 'id');
+      table.foreignKey('category_id', references: 'categories', column: 'id');
+    });
+  }
+
+  @override
+  Future<void> down() async {
+    await dropTable('user_categories');
   }
 }
 ```

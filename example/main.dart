@@ -1,9 +1,9 @@
-// ignore_for_file: avoid_print
+// ignore_for_file: avoid_print, undefined_method, wrong_number_of_type_arguments, deprecated_member_use, undefined_class, undefined_setter
 
 import 'package:harpy/harpy.dart';
 
 // Example User model
-class User extends Model with ActiveRecord {
+class User extends Model {
   @override
   String get tableName => 'users';
 

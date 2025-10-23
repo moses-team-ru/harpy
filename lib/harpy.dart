@@ -10,7 +10,9 @@ export 'src/database/database.dart';
 export 'src/database/database_connection.dart';
 export 'src/database/migration.dart';
 export 'src/database/model.dart';
+export 'src/database/model_registry.dart';
 export 'src/database/query_builder.dart';
+export 'src/database/relationships.dart';
 // Main application class
 export 'src/harpy.dart';
 // HTTP
